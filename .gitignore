@@ -3,3 +3,4 @@ not_important_folder
 openpose/models/
 !openpose/models/getModels.bat
 !openpose/models/getModels.sh
+deep_sort/model_data/*
