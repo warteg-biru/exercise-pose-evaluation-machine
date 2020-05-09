@@ -16,6 +16,9 @@ from tensorflow import keras
 import sys
 from sys import platform
 
+from pymongo import MongoClient
+import urllib.parse
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append('/usr/local/python')
 
@@ -25,7 +28,7 @@ except:
     raise Exception(
         'Error: OpenPose library could not be found. Did you enable `BUILD_PYTHON` in CMake and have this Python script in the right folder?')
 
-
+# Set openpose default parameters
 def set_params():
     params = dict()
     '''
@@ -51,12 +54,9 @@ def set_params():
     return params
 
 # Pop all in array
-
-
 def pop_all(l):
     r, l[:] = l[:], []
     return r
-
 
 # Get normalized keypoints
 def normalize_keypoints(keypoint, x_low, y_low):
@@ -67,10 +67,12 @@ def normalize_keypoints(keypoint, x_low, y_low):
         if x[0] != 0 and x[1] != 0:
             x[0] -= x_low
             x[1] -= y_low
-            nom_keypoint.append(x)
+            
+        # append all keypoints
+        nom_keypoint.append(x)
     return nom_keypoint
 
-
+# Scan video for keypoints
 def scan_video(video_path):
     model_path = './deep_sort/model_data/mars-small128.pb'
     params = set_params()
@@ -96,13 +98,17 @@ def scan_video(video_path):
 
     # Set font
     font = cv2.FONT_HERSHEY_SIMPLEX
-
+    list_of_pose = []
     while True:
+        
+        try:
+            ret, imageToProcess = stream.read()
+            datum = op.Datum()
+            datum.cvInputData = imageToProcess
+        except:
+            break
+    
 
-        ret, imageToProcess = stream.read()
-
-        datum = op.Datum()
-        datum.cvInputData = imageToProcess
         opWrapper.emplaceAndPop([datum])
 
         def pop_all(l):
@@ -112,10 +118,11 @@ def scan_video(video_path):
         # Display the stream
         output_image = datum.cvOutputData
         cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", output_image)
+        
         arr = []
         boxes = []
+        
 
-        # Wrap in try catch just in case
         try:
             # Loop each of the 17 keypoints
             for keypoint in datum.poseKeypoints:
@@ -162,6 +169,7 @@ def scan_video(video_path):
 
                 # Normalize keypoint
                 normalized_keypoints = normalize_keypoints(keypoint, x_low, y_low)
+                list_of_pose.append(normalized_keypoints)
 
                 # Make the box
                 boxes.append([x_low, y_low, width, height])
@@ -195,6 +203,7 @@ def scan_video(video_path):
         except:
             # That means there's an error
             print("Error")
+            break
 
         # Display the stream
         cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", output_image)
@@ -204,11 +213,66 @@ def scan_video(video_path):
         if key == ord('q'):
             break
 
+    # insert to mongodb
+    insert_array_to_db(list_of_pose)
+
     # Release stream and destroy all windows
     stream.release()
     cv2.destroyAllWindows()
 
+# Insert into Mongo DB
+def insert_array_to_db(list_of_pose):
+    # try catch for MongoDB connection
+    try: 
+        #connect to mongodb instance
+        username = urllib.parse.quote_plus('mongo') 
+        password = urllib.parse.quote_plus('mongo') 
+        conn = MongoClient('mongodb://%s:%s@127.0.0.1' % (username, password))
 
+
+        # connect to mongodb database and collection
+        db = conn["PoseMachine"]
+        collection = db["test"]
+        
+        # If successful print
+        print("Connected successfully!!!") 
+
+        # Initialize temp lists
+        list_os_pose_arr = []
+        pose_keypoints = []
+        arrKeypoints = []
+
+        # try catch for MongoDB insert
+        try:
+            # Array consists of poses
+            for pose in list_of_pose:
+                pop_all(pose_keypoints)
+                for keypoint in pose:
+                    pop_all(arrKeypoints)
+                    arrKeypoints.append(float(keypoint[0]))
+                    arrKeypoints.append(float(keypoint[1]))
+                    arrKeypoints.append(float(keypoint[2]))
+
+                    pose_keypoints.append(arrKeypoints)
+                
+                list_os_pose_arr.append(pose_keypoints)
+
+            # Make new object
+            pose = {
+                "list_of_pose": list_os_pose_arr,
+                "exercise_type": 1 
+            }
+
+            # Insert into database collection
+            rec_id1 = collection.insert_one(pose) 
+            print("Data inserted with record ids",rec_id1) 
+        except Exception as e:
+            print("Failed to insert data to database, errors: ", e) 
+                        
+    except Exception as e:   
+        print("Could not connect to MongoDB " , e) 
+  
+# Scan image for keypoints
 def scan_image(img_path):
     model_path = './deep_sort/model_data/mars-small128.pb'
     params = set_params()
@@ -287,6 +351,7 @@ def scan_image(img_path):
 
         # Normalize keypoint
         normalized_keypoints = normalize_keypoints(keypoint, x_low, y_low)
+        insert_array_to_db(normalized_keypoints)
 
         # Make the box
         boxes.append([x_low, y_low, width, height])
@@ -319,11 +384,11 @@ def scan_image(img_path):
                         (int(bbox[0]), int(bbox[1])-20), 0, 5e-3 * 100, (0, 255, 0), 2)
 
     # Output image
-    cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", output_image)
-    cv2.waitKey(0)
+    # cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", output_image)
+    # cv2.waitKey(0)
 
 
 if __name__ == '__main__':
-    path = '/home/kevinjanada/Downloads/push-up.jpg'
-    # scan_video(path)
-    scan_image(path)
+    path = '/home/kevinjanada/Downloads/biceps_curl_1rep.mp4'
+    scan_video(path)
+    # scan_image(path)
