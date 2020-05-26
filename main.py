@@ -8,7 +8,7 @@ from deep_sort import preprocessing
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from deep_sort.tools.generate_detections import create_box_encoder
-
+from sklearn.preprocessing import MinMaxScaler
 
 import tensorflow as tf
 from tensorflow import keras
@@ -60,6 +60,7 @@ def pop_all(l):
 
 # Get normalized keypoints
 def normalize_keypoints(keypoint, x_low, y_low):
+    
     nom_keypoint = []
     normalized_image = ""
     for count, x in enumerate(keypoint):
@@ -70,10 +71,15 @@ def normalize_keypoints(keypoint, x_low, y_low):
             
         # append all keypoints
         nom_keypoint.append(x)
-    return nom_keypoint
+        
+    # normalize data between 0 to 1
+    scaler = MinMaxScaler()
+    scaler.fit(nom_keypoint)
+    ret_val = scaler.transform(nom_keypoint)
+    return ret_val
 
 # Scan video for keypoints
-def scan_video(video_path):
+def scan_video(video_path, class_type):
     model_path = './deep_sort/model_data/mars-small128.pb'
     params = set_params()
     nms_max_overlap = 1.0
@@ -100,12 +106,12 @@ def scan_video(video_path):
     font = cv2.FONT_HERSHEY_SIMPLEX
     list_of_pose = []
     while True:
-        
         try:
             ret, imageToProcess = stream.read()
             datum = op.Datum()
             datum.cvInputData = imageToProcess
-        except:
+        except Exception as e:
+            print(e)
             break
     
 
@@ -115,14 +121,12 @@ def scan_video(video_path):
             r, l[:] = l[:], []
             return r
 
-        # Display the stream
+        # Get output image processed by Openpose
         output_image = datum.cvOutputData
-        cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", output_image)
         
         arr = []
         boxes = []
         
-
         try:
             # Loop each of the 17 keypoints
             for keypoint in datum.poseKeypoints:
@@ -200,10 +204,12 @@ def scan_video(video_path):
                                   (x_low, y_low), (255, 0, 0), 2)
                     cv2.putText(output_image, "id%s - ts%s" % (track.track_id, track.time_since_update),
                                 (int(bbox[0]), int(bbox[1])-20), 0, 5e-3 * 100, (0, 255, 0), 2)
-        except:
+        except Exception as e:
             # That means there's an error
             print("Error")
-            break
+            print(e)
+            # break
+            pass
 
         # Display the stream
         cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", output_image)
@@ -214,14 +220,14 @@ def scan_video(video_path):
             break
 
     # insert to mongodb
-    insert_array_to_db(list_of_pose)
+    insert_array_to_db(list_of_pose,class_type)
 
     # Release stream and destroy all windows
     stream.release()
     cv2.destroyAllWindows()
 
 # Insert into Mongo DB
-def insert_array_to_db(list_of_pose):
+def insert_array_to_db(list_of_pose, class_type):
     # try catch for MongoDB connection
     try: 
         #connect to mongodb instance
@@ -235,7 +241,7 @@ def insert_array_to_db(list_of_pose):
         collection = db["test"]
         
         # If successful print
-        print("Connected successfully!!!") 
+        print("\nConnected successfully!!!\n") 
 
         # Initialize temp lists
         list_os_pose_arr = []
@@ -260,7 +266,7 @@ def insert_array_to_db(list_of_pose):
             # Make new object
             pose = {
                 "list_of_pose": list_os_pose_arr,
-                "exercise_type": 1 
+                "exercise_type": class_type
             }
 
             # Insert into database collection
@@ -271,6 +277,40 @@ def insert_array_to_db(list_of_pose):
                         
     except Exception as e:   
         print("Could not connect to MongoDB " , e) 
+
+# Get from Mongo DB
+def get_dataset():
+    # Initialize temp lists
+    list_of_poses = []
+    list_of_labels = []
+
+    # try catch for MongoDB connection
+    try: 
+        #connect to mongodb instance
+        username = urllib.parse.quote_plus('mongo') 
+        password = urllib.parse.quote_plus('mongo') 
+        conn = MongoClient('mongodb://%s:%s@127.0.0.1' % (username, password))
+
+
+        # connect to mongodb database and collection
+        db = conn["PoseMachine"]
+        collection = db["test"]
+        
+        # If successful print
+        print("\nConnected successfully!!!\n") 
+
+        # try catch for MongoDB insert
+        try:
+            for x in collection.find():
+                list_of_poses.append(x["list_of_pose"])
+                list_of_labels.append(x["exercise_type"])
+        except Exception as e:
+            print("Failed to get data from database, errors: ", e) 
+                        
+    except Exception as e:   
+        print("Could not connect to MongoDB " , e) 
+    
+    return list_of_poses, list_of_labels
   
 # Scan image for keypoints
 def scan_image(img_path):
@@ -389,6 +429,19 @@ def scan_image(img_path):
 
 
 if __name__ == '__main__':
-    path = '/home/kevinjanada/Downloads/biceps_curl_1rep.mp4'
-    scan_video(path)
-    # scan_image(path)
+    # # Define base path for the dataset
+    # base_path = '/home/kevin/projects/dataset_exercise_pose_evaluation_machine'
+    
+    # # Get dataset folders
+    # dirs = os.listdir(base_path)
+
+    # # Loop in each folder
+    # for idx, d in enumerate(dirs):
+    #     folder_path = base_path+'/'+d
+    #     files = os.listdir(folder_path)
+
+    #     # Scan every file
+    #     for f in files:
+    #         file_path = folder_path+'/'+f
+    #         scan_video(file_path, idx)
+    get_array_from_db()
