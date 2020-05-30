@@ -4,3 +4,6 @@ openpose/models/
 !openpose/models/getModels.bat
 !openpose/models/getModels.sh
 deep_sort/model_data/*
+data_preproccess/preprocessed_videos
+.vscode
+.vim

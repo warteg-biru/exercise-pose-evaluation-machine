@@ -8,6 +8,7 @@ import tensorflow as tf
 
 from tensorflow.keras import layers
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.layers import TimeDistributed, Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 
 import urllib.parse
 from pymongo import MongoClient
@@ -50,7 +51,7 @@ def get_dataset():
 tf.enable_eager_execution()
 
 # Determines the number of data the dataset divides into
-batch_size = 64
+batch_size = 12
 
 # Each MNIST image batch is a tensor of shape (batch_size, 28, 28).
 # Determines each input sequence which will be of size (28, 28) (height is treated like time).
@@ -62,6 +63,10 @@ units = 16
 # Labels are from 0 to 2
 output_size = 3
 
+def pop_all(l):
+    r, l[:] = l[:], []
+    return r
+
 from numpy import array
 
 # Get dataset
@@ -69,11 +74,7 @@ x, y = get_dataset()
 x = pad_sequences(x)
 x = array(x)
 
-# Pop all in array
-def pop_all(l):
-    r, l[:] = l[:], []
-    return r
-
+# Split dataset
 reshaped_sample = []
 reshaped_frames = []
 
@@ -87,24 +88,43 @@ for i, sample in enumerate(x):
 
 x = array(reshaped_sample)
 
-# Split dataset
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.4, random_state=42)
+print(x_train.shape)
+input_shape = x_train.shape
 
 # Build the RNN model
 def build_model(allow_cudnn_kernel=True):
-  # CuDNN is only available at the layer level, and not at the cell level.
+  # CuDNN is only available at the layer level, and not, MaxPool#d at the cell level.
   # This means `LSTM(units)` will use the CuDNN kernel,
   # while RNN(LSTMCell(units)) will run on non-CuDNN kernel.
   if allow_cudnn_kernel:
     # The LSTM layer with default options uses CuDNN.
-    lstm_layer = tf.keras.layers.LSTM(units, input_shape=(66, 75))
+    lstm_layer = tf.keras.layers.LSTM(units, input_shape = (66, 75))
   else:
     # Wrapping a LSTMCell in a RNN layer will not use CuDNN.
     lstm_layer = tf.keras.layers.RNN(
         tf.keras.layers.LSTMCell(units),
         input_shape=(None, input_dim))
 
+
   # Define sequential model
+    
+  
+  
+#   conv_layer1 = Conv2D(filters=8, kernel_size=(3, 3), activation='relu')
+#   max_pool_layer = MaxPooling2D(pool_size=(2, 2))
+#   flatten_layer = Flatten()
+
+  
+#   model = tf.keras.models.Sequential()
+  # define CNN model
+#   model.add(TimeDistributed(conv_layer1, input_shape = input_shape))
+#   model.add(TimeDistributed(max_pool_layer))
+#   model.add(TimeDistributed(flatten_layer))
+#   model.add(TimeDistributed(Dropout(0.25)))
+  # define LSTM model
+#   model.add(lstm_layer)
+#   model.add(Dense(output_size))
   model = tf.keras.models.Sequential([
         lstm_layer,
         tf.keras.layers.BatchNormalization(),
@@ -114,6 +134,8 @@ def build_model(allow_cudnn_kernel=True):
 
 # Build model
 model = build_model(allow_cudnn_kernel=True)
+
+print(model.summary)
 
 # Compile model
 model.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True), 
