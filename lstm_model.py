@@ -71,7 +71,8 @@ from numpy import array
 
 # Get dataset
 x, y = get_dataset()
-x = pad_sequences(x)
+x = pad_sequences(x, padding='post', dtype = 'float32')
+print(x)
 x = array(x)
 
 # Split dataset
@@ -99,36 +100,25 @@ def build_model(allow_cudnn_kernel=True):
   # while RNN(LSTMCell(units)) will run on non-CuDNN kernel.
   if allow_cudnn_kernel:
     # The LSTM layer with default options uses CuDNN.
-    lstm_layer = tf.keras.layers.LSTM(units, input_shape = (66, 75))
+    lstm_layer = tf.keras.layers.LSTM(units, input_shape = (66, 50))
   else:
     # Wrapping a LSTMCell in a RNN layer will not use CuDNN.
     lstm_layer = tf.keras.layers.RNN(
         tf.keras.layers.LSTMCell(units),
         input_shape=(None, input_dim))
 
+  dropout_layer = tf.keras.layers.Dropout(
+      rate, noise_shape=None, seed=None, **kwargs
+  )
+
+
 
   # Define sequential model
-    
-  
-  
-#   conv_layer1 = Conv2D(filters=8, kernel_size=(3, 3), activation='relu')
-#   max_pool_layer = MaxPooling2D(pool_size=(2, 2))
-#   flatten_layer = Flatten()
-
-  
-#   model = tf.keras.models.Sequential()
-  # define CNN model
-#   model.add(TimeDistributed(conv_layer1, input_shape = input_shape))
-#   model.add(TimeDistributed(max_pool_layer))
-#   model.add(TimeDistributed(flatten_layer))
-#   model.add(TimeDistributed(Dropout(0.25)))
-  # define LSTM model
-#   model.add(lstm_layer)
-#   model.add(Dense(output_size))
   model = tf.keras.models.Sequential([
         lstm_layer,
         tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Dense(output_size)]
+        tf.keras.layers.Dense(output_size),
+        dropout_layer]
   )
   return model
 
@@ -137,16 +127,18 @@ model = build_model(allow_cudnn_kernel=True)
 
 print(model.summary)
 
+optimizer = tf.keras.optimizers.Adam(learning_rate= 0.7)
 # Compile model
 model.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True), 
-              optimizer='sgd',
+              # optimizer='adam',
+              optimizer=optimizer,
               metrics=['accuracy'])
 
 # Train model
 model.fit(x_train, y_train,
           validation_data=(x_test, y_test),
           batch_size=batch_size,
-          epochs=175)
+          epochs=100)
 
 sample, sample_label = x_test[0], y_test[0]
 
