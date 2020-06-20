@@ -1,6 +1,9 @@
 import os
 from moviepy.editor import *
 
+# Define base path for the dataset
+base_path = '/home/kevin/projects/dataset_original'
+
 def transform_video(file_path, filename):
     # Resize video to optimal size
     clip = (VideoFileClip(file_path)
@@ -14,9 +17,6 @@ def transform_video(file_path, filename):
     clip.write_videofile(dir + '/' + filename + '.mp4')
 
 if __name__ == '__main__':
-    # Define base path for the dataset
-    base_path = '/home/kevin/projects/dataset_original'
-    
     # Get dataset folders
     dirs = os.listdir(base_path)
 
