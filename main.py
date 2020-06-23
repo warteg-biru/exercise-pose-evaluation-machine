@@ -348,8 +348,8 @@ def get_dataset():
 
 if __name__ == '__main__':
     # # Define base path for the dataset
-    base_path = '/home/kevin/projects/dataset_exercise_pose_evaluation_machine2'
-    
+    # base_path = '/home/kevin/projects/dataset_exercise_pose_evaluation_machine2'
+    base_path = '/home/kevin/projects/dataset_exercise_pose_evaluation_machine2/fps-preprocessed'
 
     # # Get dataset folders
     dirs = os.listdir(base_path)

@@ -1,11 +1,13 @@
 import collections
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy import array
 
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
 
+from tensorflow.keras import models
 from tensorflow.keras import layers
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.layers import TimeDistributed, Conv2D, MaxPooling2D, Flatten, Dense, Dropout
@@ -47,6 +49,73 @@ def get_dataset():
     
     return list_of_poses, list_of_labels
 
+# Pop all from array
+def pop_all(l):
+    r, l[:] = l[:], []
+    return r
+
+# Label encoder
+def one_hot(y_):
+    # One hot encoding of the network outputs
+    # e.g.: [[5], [0], [3]] --> [[0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0]]
+    
+    y_ = y_.reshape(len(y_))
+    n_values = int(np.max(y_)) + 1
+    return np.eye(n_values)[np.array(y_, dtype=np.int32)]  # Returns FLOATS
+
+# Load the networks inputs
+def load_X(X_path):
+    file = open(X_path, 'r')
+    X_ = np.array(
+        [elem for elem in [
+            row.split(',') for row in file
+        ]], 
+        dtype=np.float32
+    )
+    file.close()
+    blocks = int(len(X_) / n_steps)
+    
+    X_ = np.array(np.split(X_,blocks))
+
+    return X_ 
+
+# Load the networks outputs
+def load_y(y_path):
+    file = open(y_path, 'r')
+    y_ = np.array(
+        [elem for elem in [
+            row.replace('  ', ' ').strip().split(' ') for row in file
+        ]], 
+        dtype=np.int32
+    )
+    file.close()
+    
+    # for 0-based indexing 
+    return y_ - 1
+
+# Define labels
+LABELS = [
+    "JUMPING",
+    "JUMPING_JACKS",
+    "BOXING",
+    "WAVING_2HANDS",
+    "WAVING_1HAND",
+    "CLAPPING_HANDS"
+] 
+
+# Labels
+output_size = len(LABELS)
+
+DATASET_PATH = "/home/kevin/learn/RNN-for-Human-Activity-Recognition-using-2D-Pose-Input/data/HAR_pose_activities/database/"
+
+X_train_path = DATASET_PATH + "X_train.txt"
+X_test_path = DATASET_PATH + "X_test.txt"
+
+y_train_path = DATASET_PATH + "Y_train.txt"
+y_test_path = DATASET_PATH + "Y_test.txt"
+
+n_steps = 32 # 32 timesteps per series
+
 # Enable eager execution
 tf.enable_eager_execution()
 
@@ -60,37 +129,13 @@ input_dim = 28
 # Output with the amount of units
 units = 16
 
-# Labels are from 0 to 2
-output_size = 3
+# Load dataset
+x_train = load_X(X_train_path)
+x_test = load_X(X_test_path)
 
-def pop_all(l):
-    r, l[:] = l[:], []
-    return r
+y_train = one_hot(load_y(y_train_path))
+y_test = one_hot(load_y(y_test_path))
 
-from numpy import array
-
-# Get dataset
-x, y = get_dataset()
-x = pad_sequences(x, padding='post', dtype = 'float32')
-print(x)
-x = array(x)
-
-# Split dataset
-reshaped_sample = []
-reshaped_frames = []
-
-for i, sample in enumerate(x):
-    pop_all(reshaped_frames)
-    for j, frames in enumerate(sample):
-        frames = np.concatenate(frames).ravel()
-        reshaped_frames.append(frames)
-        
-    reshaped_sample.append(reshaped_frames)
-
-x = array(reshaped_sample)
-
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.4, random_state=42)
-print(x_train.shape)
 input_shape = x_train.shape
 
 # Build the RNN model
@@ -100,39 +145,33 @@ def build_model(allow_cudnn_kernel=True):
   # while RNN(LSTMCell(units)) will run on non-CuDNN kernel.
   if allow_cudnn_kernel:
     # The LSTM layer with default options uses CuDNN.
-    lstm_layer = tf.keras.layers.LSTM(units, input_shape = (66, 50))
+    lstm_layer = tf.keras.layers.LSTM(units, input_shape = (input_shape[1], input_shape[2]))
   else:
     # Wrapping a LSTMCell in a RNN layer will not use CuDNN.
     lstm_layer = tf.keras.layers.RNN(
         tf.keras.layers.LSTMCell(units),
         input_shape=(None, input_dim))
 
-  dropout_layer = tf.keras.layers.Dropout(
-      rate, noise_shape=None, seed=None, **kwargs
-  )
-
-
-
   # Define sequential model
   model = tf.keras.models.Sequential([
         lstm_layer,
         tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Dense(output_size),
-        dropout_layer]
+        tf.keras.layers.Dense(output_size)
+    ]
   )
   return model
 
 # Build model
 model = build_model(allow_cudnn_kernel=True)
 
+# Show model summary
 print(model.summary)
 
-optimizer = tf.keras.optimizers.Adam(learning_rate= 0.7)
 # Compile model
-model.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True), 
-              # optimizer='adam',
-              optimizer=optimizer,
-              metrics=['accuracy'])
+optimizer = tf.keras.optimizers.Adam(learning_rate= 0.7)
+model.compile(loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True), 
+            optimizer=optimizer,
+            metrics=['accuracy'])
 
 # Train model
 model.fit(x_train, y_train,

@@ -68,4 +68,4 @@ def plot_body_part_positions(body_part_index, action, body_part_name=None):
     plt.show()
 
 random_action = generate_random_action()
-plot_body_part_positions(L_ELBOW, random_action, body_part_name='Left elbow')
+# plot_body_part_positions(L_ELBOW, random_action, body_part_name='Left elbow')
