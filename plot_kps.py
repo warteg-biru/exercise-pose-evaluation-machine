@@ -74,31 +74,26 @@ def plot_all_videos(videos, body_part_index, body_part_name=None):
     movements_x = []
     movements_y = []
 
-    plt.subplots(nrows=12, ncols=2, squeeze=False)
+    fig, axs = plt.subplots(nrows=12, ncols=2, squeeze=False)
+    fig.suptitle(f'{body_part_name} x and y Position In each frame')
     for i, action in enumerate(videos):
         movements_x = [frame[body_part_index] for frame in action]
         movements_y = [frame[body_part_index + 1] for frame in action]
         frame_indexes = [idx + 1 for idx in range(len(action))]
+
+        axs[i, 0].plot(frame_indexes, movements_x)
+        axs[i, 0].set_title(f'{body_part_name} x position')
         
-        plt.title(f'{body_part_name} x and y Position In each frame')
-        plt.ylabel(f'{body_part_name} x position')
-        plt.xlabel('Frame')
-        plt.plot(frame_indexes, movements_x)
+        axs[i, 1].plot(frame_indexes, movements_y)
+        axs[i, 1].set_title(f'{body_part_name} y position')
 
-        plt.ylabel(f'{body_part_name} y position')
-        plt.xlabel('Frame')
-        plt.plot(frame_indexes, movements_y, 'r')
-
-        print('helo')
+    for ax in axs.flat:
+        ax.set(xlabel='Frames')
 
     plt.show()
 
 def main():
     list_of_poses, list_of_labels = get_dataset()
-
     plot_all_videos(list_of_poses, NECK, 'Neck')
-    
-    # for frames in list_of_poses:
-    #     plot_body_part_positions(NECK, frames, body_part_name='Neck')
 
 main()
