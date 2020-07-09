@@ -1,27 +1,31 @@
 import os
-from moviepy.editor import *
 
 # Define base path for the dataset
-base_path = '/home/kevin/projects/dataset_original'
+base_path = 'Videos/Saves'
+save_base_path = 'Videos'
 
-def transform_video(file_path, filename):
+def transform_video(base, folder, filename):
+    # Check if dir exists
+    if not os.path.exists(save_base_path + '/preprocessed_videos'):
+        os.mkdir(save_base_path + '/preprocessed_videos')
+        print("Made preprocess directory!")
+    if not os.path.exists(save_base_path + '/preprocessed_videos/' + folder):
+        os.mkdir(save_base_path + '/preprocessed_videos/' + folder)
+        print("Made " + folder + " directory!")
+
     # Resize video to optimal size
-    clip = (VideoFileClip(file_path)
-            .fx(vfx.resize, width=405, height=720)) # resize (keep aspect ratio)
-    
-    # Remove volume
-    clip = clip.volumex(0)
-
-    # Define directory and size
-    dir = 'preprocessed_videos'
-    clip.write_videofile(dir + '/' + filename + '.mp4')
+    file_path = base + '/' + folder + '/' + filename
+    save_path = save_base_path + '/preprocessed_videos/' + folder + '/' + filename + '.mp4'
+    os.system("ffmpeg -i " + file_path + " -vf scale=720:404 -an " + save_path)
+    print("Resized, muted and saved!")
 
 if __name__ == '__main__':
     # Get dataset folders
     dirs = os.listdir(base_path)
 
     # Loop in each folder
-    for idx, filename in enumerate(dirs):
-        file = base_path+'/'+filename
-        
-        transform_video(file, filename)
+    for folder in dirs:
+        files = os.listdir(base_path + '/' + folder)
+        for filename in files:
+            print(folder, filename)
+            transform_video(base_path, folder, filename)
