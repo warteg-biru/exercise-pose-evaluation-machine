@@ -38,14 +38,14 @@ def cut_video(folder, filename):
     save_path = save_base_path + '/preprocessed_videos/' + folder
         
     # Write video
-    clip.write_videofile(save_path + '/' + str(count) + filename, fps=15)
+    clip.write_videofile(save_path + '/' + folder + str(count) + '.mp4', fps=15)
     count+=1
     
     # Flip video
     clip = clip.fx(vfx.mirror_x)
 
     # Write flipped video
-    clip.write_videofile(save_path + '/' + str(count) + filename, fps=15)
+    clip.write_videofile(save_path + '/' + folder +  str(count) + '.mp4', fps=15)
     count+=1
 
 if __name__ == '__main__':
