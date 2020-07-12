@@ -5,9 +5,8 @@ from moviepy.video.fx.speedx import speedx
 # Define base path for the dataset
 base_path = 'Videos/Saves'
 save_base_path = 'Videos'
-count = 0
 
-def cut_video(folder, filename):
+def cut_video(folder, filename, count):
     # Get clip duration
     file_path = base_path + '/' + folder + '/' + filename
     clip = VideoFileClip(file_path)
@@ -19,7 +18,7 @@ def cut_video(folder, filename):
     # Speedup clip
     fin = 1
     if folder == 'push-up':
-        fin = 1.5
+        fin = 1
     elif folder == 'sit-up':
         fin = 2
     elif folder == 'plank':
@@ -48,6 +47,8 @@ def cut_video(folder, filename):
     clip.write_videofile(save_path + '/' + folder +  str(count) + '.mp4', fps=24)
     count+=1
 
+    return count
+
 if __name__ == '__main__':
     
     # Get dataset folders
@@ -58,4 +59,4 @@ if __name__ == '__main__':
         files = os.listdir(base_path + '/' + folder)
         count = 0
         for filename in files:
-            cut_video(folder, filename)
+            count = cut_video(folder, filename, count)
