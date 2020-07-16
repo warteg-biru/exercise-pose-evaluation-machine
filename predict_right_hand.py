@@ -31,7 +31,6 @@ from keypoints_extractor import scan_image, get_upper_body_keypoints_and_id
 if __name__ == '__main__':
     # Base paths
     checkpoint_path = "/home/kevin/projects/exercise_pose_evaluation_machine/models/right_hand_up/"
-    checkpoint_path2 = "/home/kevin/projects/exercise_pose_evaluation_machine/models/right_hand_up2/"
     base_path = "/home/kevin/projects/exercise_pose_evaluation_machine/not_important_folder/right-hand-up-test/imagi4.jpg"
     
     with tf.Session() as session:
@@ -71,29 +70,3 @@ if __name__ == '__main__':
             print("No one was found")
         elif found_counter == 1:
             print("Person " + str(found_id) + " raised their hand")
-
-    # with tf.Session() as session:
-    #     # Load checkpoint model
-    #     loader = tf.train.import_meta_graph(checkpoint_path2+'right_hand_up.ckpt.meta')
-    #     loader.restore(session, tf.train.latest_checkpoint(checkpoint_path2))
-
-    #     # Get required tensors
-    #     predict = session.graph.get_tensor_by_name('predicted:0')
-
-    #     # Get placeholder and keypoint data
-    #     tf_data = session.graph.get_tensor_by_name('tf_data:0')
-        
-    #     class_dir = os.listdir(base_path)
-    #     for file_name in class_dir:
-    #         file_path = f'{base_path}/{file_name}'
-
-    #         keypoints = np.array(get_upper_body_keypoints(file_path)).flatten().astype(np.float32)
-
-    #         # Get prediction
-    #         predictions = session.run(predict, feed_dict={tf_data: [keypoints]})
-
-    #         # Print prediction
-    #         print("-----")
-    #         print(np.argmax(predictions), "supposed to be 0")
-    #         print("-----")
-        

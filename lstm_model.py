@@ -1,189 +1,281 @@
 import collections
-import matplotlib.pyplot as plt
 import numpy as np
 from numpy import array
+import matplotlib.pyplot as plt
+import random
+import time
+
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
-
+from tensorflow.python.util import deprecation
+deprecation._PRINT_DEPRECATION_WARNING = False
+tf.reset_default_graph()
 from tensorflow.keras import models
 from tensorflow.keras import layers
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.layers import TimeDistributed, Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 
-import urllib.parse
-from pymongo import MongoClient
+from keypoints_extractor import scan_video, pop_all
+from db_entity import get_dataset
 
-# Get from Mongo DB
-def get_dataset():
-    # Initialize temp lists
-    list_of_poses = []
-    list_of_labels = []
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
-    # try catch for MongoDB connection
-    try: 
-        #connect to mongodb instance
-        username = urllib.parse.quote_plus('mongo') 
-        password = urllib.parse.quote_plus('mongo') 
-        conn = MongoClient('mongodb://%s:%s@127.0.0.1' % (username, password))
+n_steps = 24
 
+def LSTM_RNN(_X, _weights, _biases):
+    # model architecture based on "guillaume-chevalier" and "aymericdamien" under the MIT license.
+    _X = tf.transpose(_X, [1, 0, 2])  # permute n_steps and batch_size
+    _X = tf.reshape(_X, [-1, n_input])   
 
-        # connect to mongodb database and collection
-        db = conn["PoseMachine"]
-        collection = db["test"]
-        
-        # If successful print
-        print("\nConnected successfully!!!\n") 
+    # Rectifies Linear Unit activation function used
+    _X = tf.nn.relu(tf.matmul(_X, _weights['hidden']) + _biases['hidden'])
+    # Split data because rnn cell needs a list of inputs for the RNN inner loop
+    _X = tf.split(_X, n_steps, 0) 
 
-        # try catch for MongoDB insert
-        try:
-            for x in collection.find():
-                list_of_poses.append(x["list_of_pose"])
-                list_of_labels.append(x["exercise_type"])
-        except Exception as e:
-            print("Failed to get data from database, errors: ", e) 
-                        
-    except Exception as e:   
-        print("Could not connect to MongoDB " , e) 
+    # Define two stacked LSTM cells (two recurrent layers deep) with tensorflow
+    lstm_cell_1 = tf.contrib.rnn.BasicLSTMCell(n_hidden, forget_bias=1.0, state_is_tuple=True)
+    lstm_cell_2 = tf.contrib.rnn.BasicLSTMCell(n_hidden, forget_bias=1.0, state_is_tuple=True)
+    lstm_cells = tf.contrib.rnn.MultiRNNCell([lstm_cell_1, lstm_cell_2], state_is_tuple=True)
+    outputs, states = tf.contrib.rnn.static_rnn(lstm_cells, _X, dtype=tf.float32)
+
+    # A single output is produced, in style of "many to one" classifier, refer to http://karpathy.github.io/2015/05/21/rnn-effectiveness/ for details
+    lstm_last_output = outputs[-1]
     
-    return list_of_poses, list_of_labels
+    # Linear activation
+    return tf.matmul(lstm_last_output, _weights['out']) + _biases['out']
 
-# Pop all from array
-def pop_all(l):
-    r, l[:] = l[:], []
-    return r
+def extract_batch_size(_train, _labels, _unsampled, batch_size):
+    # Fetch a "batch_size" amount of data and labels from "(X|y)_train" data. 
+    # Elements of each batch are chosen randomly, without replacement, from X_train with corresponding label from Y_train
+    # unsampled_indices keeps track of sampled data ensuring non-replacement. Resets when remaining datapoints < batch_size    
+    
+    _unsampled = list(_unsampled)
 
-# Label encoder
+    _train = np.array(_train)
+    shape = list(_train.shape)
+    shape[0] = batch_size
+    batch_s = []
+    batch_labels = np.array([])
+
+    for i in range(batch_size):
+        # Loop index
+        # index = random sample from _unsampled (indices)
+        index = random.choice(_unsampled)
+        _train_shape = np.array(_train[index]).shape
+        batch_s.append(_train[index])
+        batch_labels = np.append(batch_labels, _labels[index])
+        _unsampled.remove(index)
+
+    batch_s = np.array(batch_s)
+    return batch_s, batch_labels, _unsampled
+
 def one_hot(y_):
     # One hot encoding of the network outputs
     # e.g.: [[5], [0], [3]] --> [[0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0]]
-    
     y_ = y_.reshape(len(y_))
     n_values = int(np.max(y_)) + 1
     return np.eye(n_values)[np.array(y_, dtype=np.int32)]  # Returns FLOATS
 
-# Load the networks inputs
-def load_X(X_path):
-    file = open(X_path, 'r')
-    X_ = np.array(
-        [elem for elem in [
-            row.split(',') for row in file
-        ]], 
-        dtype=np.float32
-    )
-    file.close()
-    blocks = int(len(X_) / n_steps)
-    
-    X_ = np.array(np.split(X_,blocks))
-
-    return X_ 
-
-# Load the networks outputs
-def load_y(y_path):
-    file = open(y_path, 'r')
-    y_ = np.array(
-        [elem for elem in [
-            row.replace('  ', ' ').strip().split(' ') for row in file
-        ]], 
-        dtype=np.int32
-    )
-    file.close()
-    
-    # for 0-based indexing 
-    return y_ - 1
-
-# Define labels
-LABELS = [
-    "JUMPING",
-    "JUMPING_JACKS",
-    "BOXING",
-    "WAVING_2HANDS",
-    "WAVING_1HAND",
-    "CLAPPING_HANDS"
-] 
-
-# Labels
-output_size = len(LABELS)
-
-DATASET_PATH = "/home/kevin/learn/RNN-for-Human-Activity-Recognition-using-2D-Pose-Input/data/HAR_pose_activities/database/"
-
-X_train_path = DATASET_PATH + "X_train.txt"
-X_test_path = DATASET_PATH + "X_test.txt"
-
-y_train_path = DATASET_PATH + "Y_train.txt"
-y_test_path = DATASET_PATH + "Y_test.txt"
-
-n_steps = 32 # 32 timesteps per series
-
-# Enable eager execution
-tf.enable_eager_execution()
-
-# Determines the number of data the dataset divides into
-batch_size = 12
-
-# Each MNIST image batch is a tensor of shape (batch_size, 28, 28).
-# Determines each input sequence which will be of size (28, 28) (height is treated like time).
-input_dim = 28
-
-# Output with the amount of units
-units = 16
-
-# Load dataset
-x_train = load_X(X_train_path)
-x_test = load_X(X_test_path)
-
-y_train = one_hot(load_y(y_train_path))
-y_test = one_hot(load_y(y_test_path))
-
-input_shape = x_train.shape
-
 # Build the RNN model
-def build_model(allow_cudnn_kernel=True):
-  # CuDNN is only available at the layer level, and not, MaxPool#d at the cell level.
-  # This means `LSTM(units)` will use the CuDNN kernel,
-  # while RNN(LSTMCell(units)) will run on non-CuDNN kernel.
-  if allow_cudnn_kernel:
-    # The LSTM layer with default options uses CuDNN.
-    lstm_layer = tf.keras.layers.LSTM(units, input_shape = (input_shape[1], input_shape[2]))
-  else:
-    # Wrapping a LSTMCell in a RNN layer will not use CuDNN.
-    lstm_layer = tf.keras.layers.RNN(
-        tf.keras.layers.LSTMCell(units),
-        input_shape=(None, input_dim))
+def build_model():
+  # Graph input/output
+  x = tf.placeholder(tf.float32, [None, n_steps, n_input])
+  y = tf.placeholder(tf.float32, [None, n_classes])
 
-  # Define sequential model
-  model = tf.keras.models.Sequential([
-        lstm_layer,
-        tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Dense(output_size)
-    ]
-  )
-  return model
+  # Graph weights
+  weights = {
+      'hidden': tf.Variable(tf.random_normal([n_input, n_hidden])), # Hidden layer weights
+      'out': tf.Variable(tf.random_normal([n_hidden, n_classes], mean=1.0))
+  }
+  biases = {
+      'hidden': tf.Variable(tf.random_normal([n_hidden])),
+      'out': tf.Variable(tf.random_normal([n_classes]))
+  }
 
-# Build model
-model = build_model(allow_cudnn_kernel=True)
+  pred = LSTM_RNN(x, weights, biases)
 
-# Show model summary
-print(model.summary)
+  # Loss, optimizer and evaluation
+  l2 = lambda_loss_amount * sum(tf.nn.l2_loss(tf_var) for tf_var in tf.trainable_variables()) 
+  
+  # L2 loss prevents this overkill neural network to overfit the data
+  cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=pred)) + l2 # Softmax loss
+  if decaying_learning_rate:
+      learning_rate = tf.train.exponential_decay(init_learning_rate, global_step*batch_size, decay_steps, decay_rate, staircase=True)
 
-# Compile model
-optimizer = tf.keras.optimizers.Adam(learning_rate= 0.7)
-model.compile(loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True), 
-            optimizer=optimizer,
-            metrics=['accuracy'])
+  #decayed_learning_rate = learning_rate * decay_rate ^ (global_step / decay_steps) #exponentially decayed learning rate
+  optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,global_step=global_step) # Adam Optimizer
 
-# Train model
-model.fit(x_train, y_train,
-          validation_data=(x_test, y_test),
-          batch_size=batch_size,
-          epochs=100)
+  correct_pred = tf.equal(tf.argmax(pred,1), tf.argmax(y,1))
+  accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
-sample, sample_label = x_test[0], y_test[0]
+# Define class type
+CLASS_TYPE = [
+    "push-up"
+]
 
-with tf.device('CPU:0'):
-  cpu_model = build_model(allow_cudnn_kernel=True)
-  cpu_model.set_weights(model.get_weights())
-  result = tf.argmax(cpu_model.predict_on_batch(tf.expand_dims(sample, 0)), axis=1)
-  print('Predicted result is: %s, target result is: %s' % (result.numpy(), sample_label))
-  plt.imshow(sample, cmap=plt.get_cmap('gray'))
+# Train for each dataset
+for type_name in CLASS_TYPE:
+    # Get original dataset
+    x, y = get_dataset(type_name)
+    # Fill original class type with the label 1
+    y = [1 for label in y]
+
+    # Get negative dataset
+    neg_x, neg_y = get_dataset("not-" + type_name)
+    x.extend(neg_x)
+    y.extend(neg_y)
+
+    # Flatten X coodinates and filter
+    x = np.array(x)
+    _x = []
+    _y = []
+    for idx, data in enumerate(x):
+        if len(data) == 24:
+            data = [np.reshape(np.array(frames), (28)).tolist() for frames in data]
+            _x.append(data)
+            _y.append(y[idx])
+    x = _x
+    y = _y
+
+
+    # Split to training and test dataset
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.3)
+
+    x_train = np.array(x_train)
+    x_test = np.array(x_test)
+    y_train = np.array(y_train)
+    y_test = np.array(y_test)
+
+    n_input = len(x_train[0][0])
+    n_hidden = 22
+    n_classes = 2 
+    decaying_learning_rate = True
+    learning_rate = 0.0025 
+    init_learning_rate = 0.005
+    decay_rate = 0.96
+    decay_steps = 100000
+
+    global_step = tf.Variable(0, trainable=False)
+    lambda_loss_amount = 0.0015
+
+    epochs = 500
+    training_data_count = len(x_train)
+
+    training_iters = training_data_count * 300 # Loop 300 times on the dataset, ie 300 epochs
+    batch_size = 178
+    # Originally 512
+    display_iter = batch_size * 8  # To show test set accuracy during training
+
+    step = 1
+    unsampled_indices = range(0, len(x_train))
+
+    # Graph input/output
+    x = tf.placeholder(tf.float32, [None, n_steps, n_input])
+    y = tf.placeholder(tf.float32, [None, n_classes])
+
+    # Graph weights
+    weights = {
+        'hidden': tf.Variable(tf.random_normal([n_input, n_hidden])), # Hidden layer weights
+        'out': tf.Variable(tf.random_normal([n_hidden, n_classes], mean=1.0))
+    }
+    biases = {
+        'hidden': tf.Variable(tf.random_normal([n_hidden])),
+        'out': tf.Variable(tf.random_normal([n_classes]))
+    }
+
+    pred = LSTM_RNN(x, weights, biases)
+
+    # Loss, optimizer and evaluation
+    l2 = lambda_loss_amount * sum(
+        tf.nn.l2_loss(tf_var) for tf_var in tf.trainable_variables()
+    ) # L2 loss prevents this overkill neural network to overfit the data
+    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=pred)) + l2 # Softmax loss
+    if decaying_learning_rate:
+        learning_rate = tf.train.exponential_decay(init_learning_rate, global_step*batch_size, decay_steps, decay_rate, staircase=True)
+
+    #decayed_learning_rate = learning_rate * decay_rate ^ (global_step / decay_steps) #exponentially decayed learning rate
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,global_step=global_step) # Adam Optimizer
+
+    correct_pred = tf.equal(tf.argmax(pred,1), tf.argmax(y,1))
+    accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+    
+    train_losses = []
+    train_accuracies = []
+    test_losses = []
+    test_accuracies = []
+
+    time_start = time.time()
+    sess = tf.InteractiveSession(config=tf.ConfigProto(log_device_placement=True))
+    init = tf.global_variables_initializer()
+    sess.run(init)
+
+    while step * batch_size <= training_iters:
+        #print (sess.run(learning_rate)) #decaying learning rate
+        #print (sess.run(global_step)) # global number of iterations
+        if len(unsampled_indices) < batch_size:
+            unsampled_indices = range(0,len(x_train)) 
+        batch_xs, raw_labels, unsampled_indicies = extract_batch_size(x_train, y_train, unsampled_indices, batch_size)
+        batch_ys = one_hot(raw_labels)
+        
+        # check that encoded output is same length as num_classes, if not, pad it 
+        if len(batch_ys[0]) < n_classes:
+            temp_ys = np.zeros((batch_size, n_classes))
+            temp_ys[:batch_ys.shape[0],:batch_ys.shape[1]] = batch_ys
+            batch_ys = temp_ys
+
+        # Fit training using batch data
+        _, loss, acc = sess.run([optimizer, cost, accuracy] , feed_dict={x: batch_xs, y: batch_ys})
+        train_losses.append(loss)
+        train_accuracies.append(acc)
+        
+        # Evaluate network only at some steps for faster training: 
+        if (step * batch_size % display_iter == 0) or (step == 1) or (step * batch_size > training_iters):
+            
+            # To not spam console, show training accuracy/loss in this "if"
+            print("Iter #" + str(step * batch_size) + \
+                ":  Learning rate = " + "{:.6f}".format(sess.run(learning_rate)) + \
+                ":   Batch Loss = " + "{:.6f}".format(loss) + \
+                ", Accuracy = {}".format(acc))
+            
+            # Evaluation on the test set (no learning made here - just evaluation for diagnosis)
+            loss, acc = sess.run(
+                [cost, accuracy], 
+                feed_dict={
+                    x: x_test,
+                    y: one_hot(y_test)
+                }
+            )
+            test_losses.append(loss)
+            test_accuracies.append(acc)
+            print("PERFORMANCE ON TEST SET:             " + \
+                "Batch Loss = {}".format(loss) + \
+                ", Accuracy = {}".format(acc))
+
+        step += 1
+
+    # Accuracy for test data
+    one_hot_predictions, accuracy, final_loss = sess.run(
+        [pred, accuracy, cost],
+        feed_dict={
+            x: x_test,
+            y: one_hot(y_test)
+        }
+    )
+    test_losses.append(final_loss)
+    test_accuracies.append(accuracy)
+    print("FINAL RESULT: " + \
+        "Batch Loss = {}".format(final_loss) + \
+        ", Accuracy = {}".format(accuracy))
+    time_stop = time.time()
+    print("TOTAL TIME:  {}".format(time_stop - time_start))
+
+    predictions = sess.run(pred, feed_dict={
+        x: np.array([x_test[2]]),
+        y: one_hot(np.array([y_test[2]]))
+    })
+    print(np.argmax(predictions), y_test[2])
+    # JAPHNE DID THIS, ASK HIM THE MADAFAKA

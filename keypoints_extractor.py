@@ -28,6 +28,8 @@ except:
     raise Exception(
         'Error: OpenPose library could not be found. Did you enable `BUILD_PYTHON` in CMake and have this Python script in the right folder?')
 
+import gc
+
 '''
 pop_all
 
@@ -174,7 +176,162 @@ def scan_image(img_path):
     except Exception as e:
         print(e)
 
+
+'''
+scan_video
+
+# Get keypoints from the video
+@params {string} video path
+@params {integer} class of exercise
+'''
+# Scan video for keypoints
+def scan_video(video_path, keypoints_to_extract):
+    model_path = './deep_sort/model_data/mars-small128.pb'
+    params = set_params()
+    nms_max_overlap = 1.0
+
+    # Constructing OpenPose object allocates GPU memory
+    opWrapper = op.WrapperPython()
+    opWrapper.configure(params)
+    opWrapper.start()
+
+    # Set tracker
+    max_cosine_distance = 0.2
+    nn_budget = 100
+    metric = nn_matching.NearestNeighborDistanceMetric(
+        "cosine", max_cosine_distance, nn_budget)
+    tracker = Tracker(metric)
+
+    # Initialize encoder
+    encoder = create_box_encoder(model_path, batch_size=1)
+
+    # Opening OpenCV stream
+    stream = cv2.VideoCapture(video_path)
+
+    # Set font
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    list_of_pose = []
+    while True:
+        try:
+            ret, imageToProcess = stream.read()
+            datum = op.Datum()
+            datum.cvInputData = imageToProcess
+        except Exception as e:
+            # Break at end of frame
+            break
+
+        # Find keypoints
+        opWrapper.emplaceAndPop([datum])
+
+        # Get output image processed by Openpose
+        output_image = datum.cvOutputData
         
+        # Define keypoints array and binding box array
+        arr = []
+        boxes = []
+        
+        try:
+            # Loop each of the 17 keypoints
+            for keypoint in datum.poseKeypoints:
+                pop_all(arr)
+                x_high = 0
+                x_low = 9999
+                y_high = 0
+                y_low = 9999
+
+                # Get highest and lowest keypoints
+                for count, x in enumerate(keypoint):
+                    # Check which keypoints to extract
+                    if count in keypoints_to_extract:
+                        # Avoid x=0 and y=0 because some keypoints that are not discovered.
+                        # This "if" is to define the LOWEST and HIGHEST discovered keypoint.
+                        if x[0] != 0 and x[1] != 0:
+                            if x_high < x[0]:
+                                x_high = x[0]
+                            if x_low > x[0]:
+                                x_low = x[0]
+                            if y_high < x[1]:
+                                y_high = x[1]
+                            if y_low > x[1]:
+                                y_low = x[1]
+                                
+                        # Add pose keypoints to a dictionary
+                        KP = {
+                            'x': x[0],
+                            'y': x[1]
+                        }
+                        # Append dictionary to array
+                        arr.append(KP)
+
+                # Find the highest and lowest position of x and y 
+                # (Used to draw rectangle)
+                if y_high - y_low > x_high - x_low:
+                    height = y_high-y_low
+                    width = x_high-x_low
+                else:
+                    height = x_high-x_low
+                    width = y_high-y_low
+
+                # Draw rectangle (get width and height)
+                y_high = int(y_high + height / 40)
+                y_low = int(y_low - height / 12)
+                x_high = int(x_high + width / 5)
+                x_low = int(x_low - width / 5)
+
+                # Normalize keypoint
+                normalized_keypoint = normalize_keypoints(arr, x_low, y_low)
+                list_of_pose.append(normalized_keypoint)
+
+                # Make the box
+                boxes.append([x_low, y_low, width, height])
+
+                # Encode the features inside the designated box
+                features = encoder(output_image, boxes)
+
+                # For a non-empty item add to the detection array
+                def nonempty(xywh): return xywh[2] != 0 and xywh[3] != 0
+                detections = [Detection(bbox, 1.0, feature) for bbox, feature in zip(
+                    boxes, features) if nonempty(bbox)]
+
+                # Run non-maxima suppression.
+                np_boxes = np.array([d.tlwh for d in detections])
+                scores = np.array([d.confidence for d in detections])
+                indices = preprocessing.non_max_suppression(
+                    np_boxes, nms_max_overlap, scores)
+                detections = [detections[i] for i in indices]
+
+                # Update tracker.
+                tracker.predict()
+                tracker.update(detections)
+
+                # Draw rectangle and put text
+                for track in tracker.tracks:
+                    bbox = track.to_tlwh()
+                    cv2.rectangle(output_image, (x_high, y_high),
+                                  (x_low, y_low), (255, 0, 0), 2)
+                    cv2.putText(output_image, "id%s - ts%s" % (track.track_id, track.time_since_update),
+                                (int(bbox[0]), int(bbox[1])-20), 0, 5e-3 * 100, (0, 255, 0), 2)
+        except Exception as e:
+            # That means there's an error
+            print("Error")
+            print(str(e))
+            # break
+            pass
+
+    # Close encoder and open pose wrapper
+    del encoder
+    opWrapper.stop()
+
+    # Release stream
+    stream.release()
+
+    # Release memory
+    gc.collect()
+    
+    # Insert to mongodb
+    return list_of_pose
+
+
 '''
 get_upper_body_keypoints_and_id
 
