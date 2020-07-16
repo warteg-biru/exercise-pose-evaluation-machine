@@ -3,10 +3,12 @@ from moviepy.editor import *
 from moviepy.video.fx.speedx import speedx
 
 # Define base path for the dataset
-base_path = '/mnt/c/Users/user/Videos/Bandicut/'
+base_path = 'Videos/Saves'
+save_base_path = 'Videos'
 
-def cut_video(file_path, filename):
+def cut_video(folder, filename, count):
     # Get clip duration
+    file_path = base_path + '/' + folder + '/' + filename
     clip = VideoFileClip(file_path)
     duration = clip.duration
     
@@ -14,15 +16,38 @@ def cut_video(file_path, filename):
     clip = clip.cutout(duration-4.5, duration)
     
     # Speedup clip
-    clip = speedx(clip=clip, final_duration=2)
+    fin = 1
+    if folder == 'push-up':
+        fin = 1
+    elif folder == 'sit-up':
+        fin = 2
+    elif folder == 'plank':
+        fin = 1
+    elif folder == 'dumbell-curl':
+        fin = 1
+    clip = speedx(clip=clip, final_duration=fin)
 
-    # Define directory and size
-    save_path = base_path + 'preprocessed_videos'
-    if not os.path.exists(save_path):
-        os.mkdir(save_path)
+    # Define directory
+    if not os.path.exists(save_base_path + '/preprocessed_videos'):
+        os.mkdir(save_base_path + '/preprocessed_videos')
+        print("Made preprocess directory!")
+    if not os.path.exists(save_base_path + '/preprocessed_videos/' + folder):
+        os.mkdir(save_base_path + '/preprocessed_videos/' + folder)
+        print("Made " + folder + " directory!")
+    save_path = save_base_path + '/preprocessed_videos/' + folder
         
     # Write video
-    clip.write_videofile(save_path + '/' + filename, fps=24)
+    clip.write_videofile(save_path + '/' + folder + str(count) + '.mp4', fps=24)
+    count+=1
+    
+    # Flip video
+    clip = clip.fx(vfx.mirror_x)
+
+    # Write flipped video
+    clip.write_videofile(save_path + '/' + folder +  str(count) + '.mp4', fps=24)
+    count+=1
+
+    return count
 
 if __name__ == '__main__':
     
@@ -30,7 +55,8 @@ if __name__ == '__main__':
     dirs = os.listdir(base_path)
 
     # Loop in each folder
-    for idx, filename in enumerate(dirs):
-        file = base_path+'/'+filename
-        
-        cut_video(file, filename)
+    for folder in dirs:
+        files = os.listdir(base_path + '/' + folder)
+        count = 0
+        for filename in files:
+            count = cut_video(folder, filename, count)
