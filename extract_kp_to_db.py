@@ -29,7 +29,7 @@ except:
     raise Exception(
         'Error: OpenPose library could not be found. Did you enable `BUILD_PYTHON` in CMake and have this Python script in the right folder?')
 
-from keypoints_extractor import scan_video
+from keypoints_extractor import KeypointsExtractor
 from db_entity import insert_np_array_to_db
 
 
@@ -92,14 +92,12 @@ R_HEEL      = 24
 
 if __name__ == '__main__':
     # Keypoint list for each exercise
-    # squat = [NECK, R_SHOULDER, L_SHOULDER, MID_HIP, R_HIP, R_KNEE, R_ANKLE, L_HIP, L_KNEE, L_ANKLE]
-    # push_up = [NECK, R_SHOULDER, R_ELBOW, R_WRIST, L_SHOULDER, L_ELBOW, L_WRIST, MID_HIP, R_HIP, R_KNEE, R_ANKLE, L_HIP, L_KNEE, L_ANKLE]
-    # plank = [NECK, R_SHOULDER, R_ELBOW, R_WRIST, L_SHOULDER, L_ELBOW, L_WRIST, MID_HIP, R_HIP, R_KNEE, R_ANKLE, L_HIP, L_KNEE, L_ANKLE]
-    # sit_up = [NECK, R_SHOULDER, L_SHOULDER, MID_HIP, R_HIP, L_HIP]
     selected_keypoints = [NECK, R_SHOULDER, R_ELBOW, R_WRIST, L_SHOULDER, L_ELBOW, L_WRIST, MID_HIP, R_HIP, R_KNEE, R_ANKLE, L_HIP, L_KNEE, L_ANKLE]
 
     # Initialize dataset path
-    dataset_path = '/home/kevin/Videos/Dataset_temp'
+    dataset_path = '/home/kevin/projects/dataset-theo/Cut'
+
+    kp_extractor = KeypointsExtractor()
     
     # Get all keypoints from dataset
     # and insert into database
@@ -111,19 +109,19 @@ if __name__ == '__main__':
             keypoints = []
             class_type = 0
             if foldername == "squat":
-                keypoints = scan_video(folder + '/' + filename, selected_keypoints)
+                keypoints = kp_extractor.scan_video(folder + '/' + filename, selected_keypoints)
                 class_type = 1
             elif foldername == "push-up":
-                keypoints = scan_video(folder + '/' + filename, selected_keypoints)
+                keypoints = kp_extractor.scan_video(folder + '/' + filename, selected_keypoints)
                 class_type = 2
             elif foldername == "plank":
-                keypoints = scan_video(folder + '/' + filename, selected_keypoints)
+                keypoints = kp_extractor.scan_video(folder + '/' + filename, selected_keypoints)
                 class_type = 3
             elif foldername == "sit-up":
-                keypoints = scan_video(folder + '/' + filename, selected_keypoints)
+                keypoints = kp_extractor.scan_video(folder + '/' + filename, selected_keypoints)
                 class_type = 4
             elif foldername == "dumbell-curl":
-                keypoints = scan_video(folder + '/' + filename, selected_keypoints)
+                keypoints = kp_extractor.scan_video(folder + '/' + filename, selected_keypoints)
                 class_type = 5
 
             # Insert keypoints to mongodb

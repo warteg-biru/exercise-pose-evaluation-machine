@@ -26,13 +26,17 @@ from sklearn.preprocessing import OneHotEncoder
 
 from sklearn.model_selection import train_test_split
 
-from keypoints_extractor import scan_image
+from keypoints_extractor import KeypointsExtractor
 
 
 if __name__ == '__main__':
     # Base paths
     checkpoint_path = "/home/kevin/projects/exercise_pose_evaluation_machine/models/initial_pose_model/"
     img_test_path = "/home/kevin/projects/Exercise Starting Pose/Dumbell Curl/dumbellcurl1.jpg"
+    img_test_path = "/home/kevin/projects/Exercise Starting Pose/Pushups/pushupstart1 (1).jpg"
+    
+
+    kp_extractor = KeypointsExtractor()
 
     with tf.Session() as session:
         # Load checkpoint model
@@ -44,11 +48,24 @@ if __name__ == '__main__':
 
         # Get placeholder and keypoint data
         tf_data = session.graph.get_tensor_by_name('tf_data:0')
-        keypoints = np.array(scan_image(img_test_path)).flatten().astype(np.float32)
+
+        # Get keypoints from image
+        image = cv2.imread(img_test_path)
+        list_of_pose_and_id = kp_extractor.get_keypoints_and_id_from_img(image)
+        keypoints = list_of_pose_and_id[0]['Keypoints']
+
+        # Prepare keypoints to feed into network
+        keypoints = np.array(keypoints).flatten().astype(np.float32)
 
         # Get prediction
         predictions = session.run(predict, feed_dict={tf_data: [keypoints]})
 
+        '''
+        plank -> 0
+        situps -> 1
+        dumbell-curl -> 2
+        pushup -> 3
+        '''
         # Print prediction
         print("-----")
         print(np.argmax(predictions))      

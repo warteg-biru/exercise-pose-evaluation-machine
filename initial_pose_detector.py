@@ -26,7 +26,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 from sklearn.model_selection import train_test_split
 
-from keypoints_extractor import scan_image
+from keypoints_extractor import KeypointsExtractor
 
 if __name__ == '__main__':
     # Initialize paths
@@ -36,6 +36,9 @@ if __name__ == '__main__':
     # Get dataset folders
     dirs = os.listdir(base_path)
 
+    # Initialize keypoints extractor
+    kp_extractor = KeypointsExtractor()
+
     x = []
     y = []
     # Loop in each folder
@@ -43,7 +46,9 @@ if __name__ == '__main__':
         class_dir = os.listdir(base_path+'/'+class_name)
         for file_name in class_dir:
             file_path = f'{base_path}/{class_name}/{file_name}'
-            keypoints = scan_image(file_path)
+            image = cv2.imread(file_path)
+            list_of_pose_and_id = kp_extractor.get_keypoints_and_id_from_img(image)
+            keypoints = list_of_pose_and_id[0]['Keypoints']
 
             x.append(np.array(keypoints).flatten())
             y.append(class_label)
@@ -64,7 +69,7 @@ if __name__ == '__main__':
     y_test  = np.array(y_test).astype(np.float32)
 
     # Define number of features, labels, and hidden
-    num_features = 50
+    num_features = 28 # 14 pairs of (x, y) keypoints
     num_labels = 4
     num_hidden = 10
     
