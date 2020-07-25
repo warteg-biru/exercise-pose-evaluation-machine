@@ -4,6 +4,9 @@ from data_preproccess.plot_body_part_positions import plot_body_part_positions
 
 import numpy as np
 import matplotlib.pyplot as plt
+from list_manipulator import pop_all
+from keypoints_extractor import KeypointsExtractor
+
 
 # KP ordering of body parts
 NOSE        = 0
@@ -48,7 +51,7 @@ def get_dataset():
 
         # connect to mongodb database and collection
         db = conn["PoseMachine"]
-        collection = db["test"]
+        collection = db["push-up"]
         
         # If successful print
         print("\nConnected successfully!!!\n") 
@@ -66,34 +69,80 @@ def get_dataset():
     
     return list_of_poses, list_of_labels
 
-
-def plot_all_videos(videos, body_part_index, body_part_name=None):
+def plot_all_videos(list_of_poses, body_part_index, body_part_name=None):
     if body_part_name is None:
         body_part_name = 'Body part'
     
+    # Initialize plot list differences for each frame
     movements_x = []
     movements_y = []
 
-    fig, axs = plt.subplots(nrows=12, ncols=2, squeeze=False)
-    fig.suptitle(f'{body_part_name} x and y Position In each frame')
-    for i, action in enumerate(videos):
-        movements_x = [frame[body_part_index] for frame in action]
-        movements_y = [frame[body_part_index + 1] for frame in action]
-        frame_indexes = [idx + 1 for idx in range(len(action))]
+    # nrows is to define the number of test data
+    # ncols is to define the number plots for each coordinates (x & y)
+    fig, axs = plt.subplots(nrows=1, ncols=2, squeeze=False)
+    fig.suptitle(f'{body_part_name} x and y Movements In each frame')
 
-        axs[i, 0].plot(frame_indexes, movements_x)
-        axs[i, 0].set_title(f'{body_part_name} x position')
+    # Define the matplot settings
+    axs[0, 0].set_title(f'{body_part_name} x movements')
+    axs[0, 0].set_xlim([1, 24])
+    axs[0, 0].set_ylim([-1, 1])
+    axs[0, 1].set_title(f'{body_part_name} y movements')
+    axs[0, 1].set_xlim([1, 24])
+    axs[0, 1].set_ylim([-1, 1])
+
+    # Define the list of positive 
+    # Or negative movements
+    mov_pos_x = []
+    mov_pos_y = []
+    mov_neg_x = []
+    mov_neg_y = []
+
+    # Loop each frame
+    for i, pose_frames in enumerate(list_of_poses):
+        for idx, action in enumerate(pose_frames):
+            if idx < len(pose_frames) - 1:
+                # Get the plotted movements between the two keypoints
+                # For each movement at the x axis in body_part_index keypoints add to movements_x
+                mov_x = pose_frames[idx+1][body_part_index][0] - pose_frames[idx][body_part_index][0]
+                if mov_x > 0:
+                    mov_pos_x.append(mov_x)
+                else:
+                    mov_neg_x.append(mov_x)
+                movements_x.append(mov_x)
+                # For each movement at the y axis in body_part_index keypoints add to movements_y
+                mov_y = pose_frames[idx+1][body_part_index][1] - pose_frames[idx][body_part_index][1]
+                if mov_y > 0:
+                    mov_pos_y.append(mov_y)
+                else:
+                    mov_neg_y.append(mov_y)
+                movements_y.append(mov_y)
+
+        # Get the total number of frames
+        frame_indexes = [idx + 1 for idx in range(len(pose_frames) - 1)]
         
-        axs[i, 1].plot(frame_indexes, movements_y)
-        axs[i, 1].set_title(f'{body_part_name} y position')
+        # Plot the movement x coordinate of each video
+        axs[0, 0].plot(frame_indexes, movements_x)
+        
+        # Plot the movement y coordinate of each video
+        axs[0, 1].plot(frame_indexes, movements_y)
+        
+        pop_all(movements_x)
+        pop_all(movements_y)
 
     for ax in axs.flat:
         ax.set(xlabel='Frames')
 
+    # Print the threshold
+    print('X axis positive movement threshold: ', str(sum(mov_pos_x)/len(mov_pos_x)))
+    print('X axis negative movement threshold: ', str(sum(mov_neg_x)/len(mov_neg_x)))
+    print('Y axis positive movement threshold: ', str(sum(mov_pos_y)/len(mov_pos_y)))
+    print('Y axis negative movement threshold: ', str(sum(mov_neg_y)/len(mov_neg_y)))
+
+    # Show plot
     plt.show()
 
 def main():
     list_of_poses, list_of_labels = get_dataset()
-    plot_all_videos(list_of_poses, NECK, 'Neck')
+    plot_all_videos(list_of_poses, NECK - 1, 'NECK')
 
 main()

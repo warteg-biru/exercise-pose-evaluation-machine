@@ -19,7 +19,7 @@ from tensorflow.keras import layers
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.layers import TimeDistributed, Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 
-from keypoints_extractor import scan_video, pop_all
+from keypoints_extractor import pop_all
 from db_entity import get_dataset
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)

@@ -63,30 +63,49 @@ def set_params():
 normalize_keypoints
 '''
 # Get normalized keypoints
-def normalize_keypoints(keypoint, x_low, y_low):
+def normalize_keypoints(keypoint_frames, x_low, y_low):
     # Define normalized keypoints array
-    nom_keypoint = []
+    all_keypoints = []
+    # Define normalized keypoints array for each frames
+    nom_keypoint_frame = []
     try:
-        normalized_image = ""
-        for count, kp in enumerate(keypoint):
-            # Avoid x=0 and y=0 because some keypoints that are not discovered
-            # If x=0 and y=0 than it doesn't need to be substracted with the
-            # lowest x and y points
-            if kp['x'] != 0 and kp['y'] != 0:
-                x = kp['x'] - x_low
-                y = kp['y'] - y_low
-                nom_keypoint.append([x,y])
-            else:
-                nom_keypoint.append([kp['x'], kp['y']])
-
+        for i, _ in enumerate(keypoint_frames):
+            # Define temporary array for normalized keypoints 
+            # (To be appended to normalized frame keypoints array)
+            nom_keypoint = []
+            for count, kp in enumerate(_):
+                # Avoid x=0 and y=0 because some keypoints that are not discovered
+                # If x=0 and y=0 than it doesn't need to be substracted with the
+                # lowest x and y points
+                if kp['x'] != 0 and kp['y'] != 0:
+                    x = kp['x'] - x_low
+                    y = kp['y'] - y_low
+                    nom_keypoint.append([x,y])
+                    all_keypoints.append([x,y])
+                else:
+                    nom_keypoint.append([kp['x'], kp['y']])
+                    all_keypoints.append([kp['x'], kp['y']])
+            
+            # Add keypoints for the selected frame to the array
+            nom_keypoint_frame.append(nom_keypoint)
     except Exception as e:
         print(str(e))
         
-    # normalize data between 0 to 1
-    scaler = MinMaxScaler()
-    scaler.fit(nom_keypoint)
-    ret_val = scaler.transform(nom_keypoint)
-    return ret_val
+    # Normalize data between 0 to 1
+    scaler = MinMaxScaler(feature_range=(0,1))
+
+    # Fit the scaler according to all the keypoints
+    # From all the frames
+    scaler.fit(all_keypoints)
+
+    # Define MinMax'ed keypoints for each frame
+    min_max_keypoint_frame = []
+    for x in nom_keypoint_frame:
+        ret_val = scaler.transform(x) # ret_val is an array of keypoints (in other words Frames)
+        min_max_keypoint_frame.append(ret_val)
+
+    # Return normalized keypoint frames
+    return min_max_keypoint_frame
 
 
 class KeypointsExtractor:
@@ -186,7 +205,7 @@ class KeypointsExtractor:
                 x_high = int(x_high + width / 5)
                 x_low = int(x_low - width / 5)
 
-                # # Normalize keypoint
+                # Normalize keypoint
                 normalized_keypoints = normalize_keypoints(arr, x_low, y_low)
                 list_of_pose_temp.append(normalized_keypoints)
 
@@ -442,6 +461,8 @@ class KeypointsExtractor:
 
         # Set font
         list_of_pose = []
+        x_low_arr = []
+        y_low_arr = []
         while True:
             try:
                 ret, imageToProcess = stream.read()
@@ -509,14 +530,17 @@ class KeypointsExtractor:
                     x_high = int(x_high + width / 5)
                     x_low = int(x_low - width / 5)
 
-                    # Normalize keypoint
-                    normalized_keypoint = normalize_keypoints(arr, x_low, y_low)
-                    list_of_pose.append(normalized_keypoint)
+                    x_low_arr.append(x_low)
+                    y_low_arr.append(y_low)
+
+                    list_of_pose.append(arr)
             except Exception as e:
+                print(e)
+                traceback.print_exc()
                 pass
-        
-        # Insert to mongodb
-        return list_of_pose
+
+        normalized_keypoints = normalize_keypoints(list_of_pose, min(x_low_arr), min(y_low_arr))
+        return normalized_keypoints
 
 
     '''

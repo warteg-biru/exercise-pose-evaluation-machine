@@ -2,6 +2,48 @@ import urllib.parse
 from pymongo import MongoClient
 
 '''
+insert_threshold_to_db
+
+Insert exercise movements threshold into Mongo DB
+@params {float} x_threshold
+@params {float} y_threshold
+@params {float} class of exercise
+'''
+def insert_threshold_to_db(x_threshold, y_threshold, class_name, keypoint_dict):
+    # try catch for MongoDB connection
+    try: 
+        #connect to mongodb instance
+        username = urllib.parse.quote_plus('mongo')
+        password = urllib.parse.quote_plus('mongo') 
+        conn = MongoClient('mongodb://%s:%s@127.0.0.1' % (username, password))
+
+        # connect to mongodb database and collection
+        db = conn["PoseMachine"]
+        collection = db[class_name + "-threshold"]
+        
+        # If successful print
+        print("\nConnected successfully!!!\n") 
+
+        # try catch for MongoDB insert
+        try:
+            # Make new object
+            pose = {
+                "keypoint_name": keypoint_dict["name"],
+                "keypoint_num": keypoint_dict["value"],
+                "x_threshold": x_threshold,
+                "y_threshold": y_threshold
+            }
+
+            # Insert into database collection
+            rec_id1 = collection.insert_one(pose) 
+            print("Data inserted with record ids",rec_id1) 
+        except Exception as e:
+            print("Failed to insert data to database, errors: ", e) 
+                        
+    except Exception as e:   
+        print("Could not connect to MongoDB " , e) 
+
+'''
 insert_array_to_db
 
 Insert array of poses into Mongo DB
@@ -86,44 +128,6 @@ def insert_np_array_to_db(list_of_pose, class_type, class_name):
                         
     except Exception as e:   
         print("Could not connect to MongoDB " , e) 
-
-'''
-get_dataset
-
-# Get data from MongoDB
-'''
-# Get from Mongo DB
-def get_dataset(collection_name):
-    # Initialize temp lists
-    list_of_poses = []
-    list_of_labels = []
-
-    # try catch for MongoDB connection
-    try: 
-        #connect to mongodb instance
-        username = urllib.parse.quote_plus('mongo') 
-        password = urllib.parse.quote_plus('mongo') 
-        conn = MongoClient('mongodb://%s:%s@127.0.0.1' % (username, password))
-
-        # connect to mongodb database and collection
-        db = conn["PoseMachine"]
-        collection = db[collection_name]
-        
-        # If successful print
-        print("\nConnected successfully!!!\n") 
-
-        # try catch for MongoDB insert
-        try:
-            for x in collection.find():
-                list_of_poses.append(x["list_of_pose"])
-                list_of_labels.append(x["exercise_type"])
-        except Exception as e:
-            print("Failed to get data from database, errors: ", e) 
-                        
-    except Exception as e:   
-        print("Could not connect to MongoDB " , e) 
-    
-    return list_of_poses, list_of_labels
 
 '''
 get_dataset

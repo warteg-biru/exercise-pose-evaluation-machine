@@ -90,6 +90,26 @@ R_BIG_TOE   = 22
 R_SMALL_TOE = 23
 R_HEEL      = 24
 
+def validate_keypoints(frames, expected_frames):
+    # If the actual frame count does not 
+    # Equal to the expected frame count
+    if len(frames) != expected_frames:
+        print("Data invalid!")
+        return False
+    for keypoints in frames:
+        # If the actual keypoints does not 
+        # Equal to the expected keypoints
+        if len(keypoints) != 14:
+            print("Data invalid!")
+            return False
+        for coordinates in keypoints:
+            # If the actual coordinates does not 
+            # Equal to the expected coordinates (x,y)
+            if len(coordinates) != 2:
+                print("Data invalid!")
+                return False
+    return True
+
 if __name__ == '__main__':
     # Keypoint list for each exercise
     selected_keypoints = [NECK, R_SHOULDER, R_ELBOW, R_WRIST, L_SHOULDER, L_ELBOW, L_WRIST, MID_HIP, R_HIP, R_KNEE, R_ANKLE, L_HIP, L_KNEE, L_ANKLE]
@@ -110,18 +130,28 @@ if __name__ == '__main__':
             class_type = 0
             if foldername == "squat":
                 keypoints = kp_extractor.scan_video(folder + '/' + filename, selected_keypoints)
+                if not validate_keypoints(keypoints, 48):
+                    continue
                 class_type = 1
             elif foldername == "push-up":
                 keypoints = kp_extractor.scan_video(folder + '/' + filename, selected_keypoints)
+                if not validate_keypoints(keypoints, 24):
+                    continue
                 class_type = 2
             elif foldername == "plank":
                 keypoints = kp_extractor.scan_video(folder + '/' + filename, selected_keypoints)
+                if not validate_keypoints(keypoints, 24):
+                    continue
                 class_type = 3
             elif foldername == "sit-up":
                 keypoints = kp_extractor.scan_video(folder + '/' + filename, selected_keypoints)
+                if not validate_keypoints(keypoints, 48):
+                    continue
                 class_type = 4
             elif foldername == "dumbell-curl":
                 keypoints = kp_extractor.scan_video(folder + '/' + filename, selected_keypoints)
+                if not validate_keypoints(keypoints, 24):
+                    continue
                 class_type = 5
 
             # Insert keypoints to mongodb
