@@ -3,3 +3,4 @@ scikit-learn==0.21.0
 opencv-python==4.2.0.34
 tensorflow-gpu==1.15.2
 moviepy
+pymongo

@@ -1,38 +1,21 @@
 import os
-
 import cv2
-import numpy as np
-
-import tensorflow as tf
-from tensorflow import keras
-
-import sys
-from sys import platform
-import numpy as np
-import os
-import cv2
-import tensorflow as tf
 import collections
+import numpy as np
 import matplotlib.pyplot as plt
-import sys
-from sys import platform
-from deep_sort import nn_matching
-from deep_sort import preprocessing
-from deep_sort.detection import Detection
-from deep_sort.tracker import Tracker
-from deep_sort.tools.generate_detections import create_box_encoder
+
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import OneHotEncoder
-
 from sklearn.model_selection import train_test_split
-from keypoints_extractor import scan_image, get_upper_body_keypoints_and_id, get_upper_body_keypoints_and_id_from_img, set_params
 
 from keypoints_extractor import KeypointsExtractor
+
+import tensorflow as tf
 
 if __name__ == '__main__':
     # Base paths
     checkpoint_path = "/home/kevin/projects/exercise_pose_evaluation_machine/models/right_hand_up/"
-    base_path = "/home/kevin/projects/dataset-handsup-to-exercise/pushup.mp4.mp4"
+    base_path = "/home/kevin/projects/right-hand-up.mp4"
     kp_extractor = KeypointsExtractor()
     
     with tf.Session() as session:
@@ -61,7 +44,7 @@ if __name__ == '__main__':
 
             # Get keypoint and ID data
             list_of_keypoints = kp_extractor.get_upper_body_keypoints_and_id_from_img(imageToProcess)
-
+            
             # Foreach keypoint predict user data
             found_counter = 0
             found_id = None
@@ -90,6 +73,7 @@ if __name__ == '__main__':
                     break
             except Exception as e:
                 # Break at end of frame
+                print(e)
                 pass
             
             # Display the stream

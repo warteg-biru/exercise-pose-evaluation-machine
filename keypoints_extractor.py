@@ -1,46 +1,30 @@
 import os
-
-import cv2
-import numpy as np
-
 import sys
-from sys import platform
-import numpy as np
-import os
 import cv2
+import numpy as np
 import collections
 import matplotlib.pyplot as plt
-import sys
-from sys import platform
-from deep_sort import nn_matching
-from deep_sort import preprocessing
-from deep_sort.detection import Detection
-from deep_sort.tracker import Tracker
-from deep_sort.tools.generate_detections import create_box_encoder
+
 from sklearn.preprocessing import MinMaxScaler
+from list_manipulator import pop_all
 import traceback
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append('/usr/local/python')
 
 try:
     from openpose import pyopenpose as op
-except:
+except Exception as e:
     raise Exception(
-        'Error: OpenPose library could not be found. Did you enable `BUILD_PYTHON` in CMake and have this Python script in the right folder?')
+        'Error: OpenPose library could not be found. Did you enable `BUILD_PYTHON` in CMake and have this Python script in the right folder?'
+    )
+
+from deep_sort import nn_matching
+from deep_sort import preprocessing
+from deep_sort.tracker import Tracker
+from deep_sort.detection import Detection
+from deep_sort.tools.generate_detections import create_box_encoder
 
 import gc
-
-'''
-pop_all
-
-# Pop entire list
-@params {list} list to be popped
-'''
-# Pop all in array
-def pop_all(l):
-    r, l[:] = l[:], []
-    return r
 
 '''
 set_params
@@ -59,11 +43,42 @@ def set_params():
     params["model_folder"] = './openpose/models'
     return params
 
+
 '''
 normalize_keypoints
 '''
 # Get normalized keypoints
-def normalize_keypoints(keypoint_frames, x_low, y_low):
+def normalize_keypoints(keypoint, x_low, y_low):
+    # Define normalized keypoints array
+    nom_keypoint = []
+    try:
+        normalized_image = ""
+        for count, kp in enumerate(keypoint):
+            # Avoid x=0 and y=0 because some keypoints that are not discovered
+            # If x=0 and y=0 than it doesn't need to be substracted with the
+            # lowest x and y points
+            if kp['x'] != 0 and kp['y'] != 0:
+                x = kp['x'] - x_low
+                y = kp['y'] - y_low
+                nom_keypoint.append([x,y])
+            else:
+                nom_keypoint.append([kp['x'], kp['y']])
+
+    except Exception as e:
+        print(str(e))
+
+    # normalize data between 0 to 1
+    scaler = MinMaxScaler()
+    scaler.fit(nom_keypoint)
+    ret_val = scaler.transform(nom_keypoint)
+    return ret_val
+
+
+'''
+normalize_keypoints_for_scan_video
+'''
+# Get normalized keypoints
+def normalize_keypoints_for_scan_video(keypoint_frames, x_low, y_low):
     # Define normalized keypoints array
     all_keypoints = []
     # Define normalized keypoints array for each frames
@@ -239,7 +254,10 @@ class KeypointsExtractor:
                             "Keypoints": list_of_pose_temp[track_idx],
                             "ID": track.track_id
                         })
-
+            
+            # return_image = img
+            # if datum.cvOutputData is not None:
+            #     return_image = datum.cvOutputData
             return list_of_pose_and_id
         except Exception as e:
             traceback.print_exc()
@@ -539,7 +557,7 @@ class KeypointsExtractor:
                 traceback.print_exc()
                 pass
 
-        normalized_keypoints = normalize_keypoints(list_of_pose, min(x_low_arr), min(y_low_arr))
+        normalized_keypoints = normalize_keypoints_for_scan_video(list_of_pose, min(x_low_arr), min(y_low_arr))
         return normalized_keypoints
 
 

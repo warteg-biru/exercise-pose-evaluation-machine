@@ -1,37 +1,9 @@
 import os
-
-import cv2
-import numpy as np
-
-
-from deep_sort import nn_matching
-from deep_sort import preprocessing
-from deep_sort.detection import Detection
-from deep_sort.tracker import Tracker
-from deep_sort.tools.generate_detections import create_box_encoder
-from sklearn.preprocessing import MinMaxScaler
-
-import tensorflow as tf
-from tensorflow import keras
-
-import sys
-from sys import platform
-
-from pymongo import MongoClient
 import urllib.parse
-
-dir_path = os.path.dirname(os.path.realpath(__file__))
-sys.path.append('/usr/local/python')
-
-try:
-    from openpose import pyopenpose as op
-except:
-    raise Exception(
-        'Error: OpenPose library could not be found. Did you enable `BUILD_PYTHON` in CMake and have this Python script in the right folder?')
+from pymongo import MongoClient
 
 from keypoints_extractor import KeypointsExtractor
 from db_entity import insert_np_array_to_db
-
 
 '''
 set_params
