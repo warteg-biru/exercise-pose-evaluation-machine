@@ -75,10 +75,10 @@ def normalize_keypoints(keypoint, x_low, y_low):
 
 
 '''
-normalize_keypoints_for_scan_video
+normalize_keypoints_for_plot_kps
 '''
 # Get normalized keypoints
-def normalize_keypoints_for_scan_video(keypoint_frames, x_low, y_low):
+def normalize_keypoints_for_plot_kps(keypoint_frames, x_low, y_low):
     # Define normalized keypoints array
     all_keypoints = []
     # Define normalized keypoints array for each frames
@@ -466,6 +466,75 @@ class KeypointsExtractor:
 
 
     '''
+    scan_image_without_normalize
+
+    # Get keypoints from the image
+    @params {string} image path
+    '''
+    # Scan image for keypoints
+    def scan_image_without_normalize(self, img_path):
+        # Opening image in OpenCV
+        imageToProcess = cv2.imread(img_path)
+
+        # Get data points (datum)
+        datum = op.Datum()
+        datum.cvInputData = imageToProcess
+        self.opWrapper.emplaceAndPop([datum])
+
+        # Get output image
+        output_image = datum.cvOutputData
+
+        arr = []
+        try:
+            pop_all(arr)
+            x_high = 0
+            x_low = 9999
+            y_high = 0
+            y_low = 9999
+
+            # Get highest and lowest keypoints
+            for count, x in enumerate(datum.poseKeypoints[0]):
+                # Avoid x=0 and y=0 because some keypoints that are not discovered.
+                # This "if" is to define the LOWEST and HIGHEST discovered keypoint.
+                if x[0] != 0 and x[1] != 0:
+                    if x_high < x[0]:
+                        x_high = x[0]
+                    if x_low > x[0]:
+                        x_low = x[0]
+                    if y_high < x[1]:
+                        y_high = x[1]
+                    if y_low > x[1]:
+                        y_low = x[1]
+                        
+                # Add pose keypoints to a dictionary
+                KP = {
+                    'x': x[0],
+                    'y': x[1]
+                }
+                # Append dictionary to array
+                arr.append(KP)
+
+            # Find the highest and lowest position of x and y 
+            # (Used to draw rectangle)
+            if y_high - y_low > x_high - x_low:
+                height = y_high-y_low
+                width = x_high-x_low
+            else:
+                height = x_high-x_low
+                width = y_high-y_low
+
+            # Draw rectangle (get width and height)
+            y_high = int(y_high + height / 40)
+            y_low = int(y_low - height / 12)
+            x_high = int(x_high + width / 5)
+            x_low = int(x_low - width / 5)
+
+            return arr, x_low, y_low
+        except Exception as e:
+            print(e)
+
+
+    '''
     scan_video
 
     # Get keypoints from the video
@@ -479,8 +548,6 @@ class KeypointsExtractor:
 
         # Set font
         list_of_pose = []
-        x_low_arr = []
-        y_low_arr = []
         while True:
             try:
                 ret, imageToProcess = stream.read()
@@ -548,17 +615,108 @@ class KeypointsExtractor:
                     x_high = int(x_high + width / 5)
                     x_low = int(x_low - width / 5)
 
-                    x_low_arr.append(x_low)
-                    y_low_arr.append(y_low)
-
-                    list_of_pose.append(arr)
+                    normalized_keypoint = normalize_keypoints(arr, x_low, y_low)
+                    list_of_pose.append(normalized_keypoint)
             except Exception as e:
                 print(e)
                 traceback.print_exc()
                 pass
 
-        normalized_keypoints = normalize_keypoints_for_scan_video(list_of_pose, min(x_low_arr), min(y_low_arr))
-        return normalized_keypoints
+        return list_of_pose
+
+
+    '''
+    scan_video_without_normalize
+
+    # Get keypoints from the video
+    @params {string} video path
+    @params {integer} class of exercise
+    '''
+    # Scan video for keypoints
+    def scan_video_without_normalize(self, video_path, keypoints_to_extract):
+        # Opening OpenCV stream
+        stream = cv2.VideoCapture(video_path)
+
+        # Set font
+        list_of_pose = []
+        list_of_x_low = []
+        list_of_y_low = []
+        while True:
+            try:
+                ret, imageToProcess = stream.read()
+                datum = op.Datum()
+                datum.cvInputData = imageToProcess
+            except Exception as e:
+                # Break at end of frame
+                break
+
+            # Find keypoints
+            self.opWrapper.emplaceAndPop([datum])
+
+            # Get output image processed by Openpose
+            output_image = datum.cvOutputData
+            
+            # Define keypoints array and binding box array
+            arr = []
+            boxes = []
+            
+            try:
+                # Loop each of the 17 keypoints
+                for keypoint in datum.poseKeypoints:
+                    pop_all(arr)
+                    x_high = 0
+                    x_low = 9999
+                    y_high = 0
+                    y_low = 9999
+
+                    # Get highest and lowest keypoints
+                    for count, x in enumerate(keypoint):
+                        # Check which keypoints to extract
+                        if count in keypoints_to_extract:
+                            # Avoid x=0 and y=0 because some keypoints that are not discovered.
+                            # This "if" is to define the LOWEST and HIGHEST discovered keypoint.
+                            if x[0] != 0 and x[1] != 0:
+                                if x_high < x[0]:
+                                    x_high = x[0]
+                                if x_low > x[0]:
+                                    x_low = x[0]
+                                if y_high < x[1]:
+                                    y_high = x[1]
+                                if y_low > x[1]:
+                                    y_low = x[1]
+                                    
+                            # Add pose keypoints to a dictionary
+                            KP = {
+                                'x': x[0],
+                                'y': x[1]
+                            }
+                            # Append dictionary to array
+                            arr.append(KP)
+
+                    # Find the highest and lowest position of x and y 
+                    # (Used to draw rectangle)
+                    if y_high - y_low > x_high - x_low:
+                        height = y_high-y_low
+                        width = x_high-x_low
+                    else:
+                        height = x_high-x_low
+                        width = y_high-y_low
+
+                    # Draw rectangle (get width and height)
+                    y_high = int(y_high + height / 40)
+                    y_low = int(y_low - height / 12)
+                    x_high = int(x_high + width / 5)
+                    x_low = int(x_low - width / 5)
+
+                    list_of_pose.append(arr)
+                    list_of_x_low.append(x_low)
+                    list_of_y_low.append(y_low)
+            except Exception as e:
+                print(e)
+                traceback.print_exc()
+                pass
+
+        return list_of_pose, list_of_x_low, list_of_y_low
 
 
     '''
