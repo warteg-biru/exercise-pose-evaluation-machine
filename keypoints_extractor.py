@@ -637,7 +637,6 @@ class KeypointsExtractor:
         # Opening OpenCV stream
         stream = cv2.VideoCapture(video_path)
 
-        # Set font
         list_of_pose = []
         list_of_x_low = []
         list_of_y_low = []
@@ -854,7 +853,7 @@ class KeypointsExtractor:
     @params {string} image path
     '''
     def get_upper_body_keypoint(self, image_path):
-        keypoints = scan_image(image_path)
+        keypoints = self.scan_image(image_path)
         # KP ordering of body parts
         NECK        = 1
         R_SHOULDER  = 2

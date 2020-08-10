@@ -1,29 +1,19 @@
 import os
-
-import cv2
-import numpy as np
-
-import tensorflow as tf
-from tensorflow import keras
-
 import sys
-from sys import platform
-import numpy as np
-import os
 import cv2
-import tensorflow as tf
+import numpy as np
 import collections
-import matplotlib.pyplot as plt
-import sys
-from sys import platform
+
+import tensorflow as tf
+
 from deep_sort import nn_matching
 from deep_sort import preprocessing
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from deep_sort.tools.generate_detections import create_box_encoder
+
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import OneHotEncoder
-
 from sklearn.model_selection import train_test_split
 
 from keypoints_extractor import KeypointsExtractor

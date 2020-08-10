@@ -4,7 +4,7 @@ from keypoints_extractor import pop_all
 CLASS_TYPE = [
     "dumbell-curl",
     "push-up",
-    "sit-up",
+    # "sit-up",
     # "squat",
     "plank"
 ]
@@ -38,5 +38,4 @@ def make_inverse_dataset(class_type):
         insert_array_to_db(x, 0, "not-" + class_type)
 
 if __name__ == '__main__':
-    for x in CLASS_TYPE:
-        make_inverse_dataset(x)
+    make_inverse_dataset("push-up2")

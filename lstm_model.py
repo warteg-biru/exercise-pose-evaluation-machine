@@ -1,30 +1,29 @@
+import os
+import time
+import random
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+
 import collections
 import numpy as np
 from numpy import array
 import matplotlib.pyplot as plt
-import random
-import time
-
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+from db_entity import get_dataset
+from keypoints_extractor import pop_all
 
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
-from tensorflow.python.util import deprecation
-deprecation._PRINT_DEPRECATION_WARNING = False
-tf.reset_default_graph()
 from tensorflow.keras import models
 from tensorflow.keras import layers
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.layers import TimeDistributed, Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 
-from keypoints_extractor import pop_all
-from db_entity import get_dataset
-
+tf.reset_default_graph()
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 n_steps = 24
+
+checkpoint_path = "/home/kevin/projects/exercise_pose_evaluation_machine/models/lstm_model/lstm_model.ckpt"
 
 def LSTM_RNN(_X, _weights, _biases):
     # model architecture based on "guillaume-chevalier" and "aymericdamien" under the MIT license.
@@ -46,7 +45,12 @@ def LSTM_RNN(_X, _weights, _biases):
     lstm_last_output = outputs[-1]
     
     # Linear activation
-    return tf.matmul(lstm_last_output, _weights['out']) + _biases['out']
+    
+    return tf.math.add(
+        tf.matmul(lstm_last_output, _weights['out']),
+        _biases['out'],
+        name='predict'
+    )
 
 def extract_batch_size(_train, _labels, _unsampled, batch_size):
     # Fetch a "batch_size" amount of data and labels from "(X|y)_train" data. 
@@ -77,44 +81,13 @@ def one_hot(y_):
     # One hot encoding of the network outputs
     # e.g.: [[5], [0], [3]] --> [[0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0]]
     y_ = y_.reshape(len(y_))
-    n_values = int(np.max(y_)) + 1
+    n_values = int(np.max(y_)) + 2
     return np.eye(n_values)[np.array(y_, dtype=np.int32)]  # Returns FLOATS
 
-# Build the RNN model
-def build_model():
-  # Graph input/output
-  x = tf.placeholder(tf.float32, [None, n_steps, n_input])
-  y = tf.placeholder(tf.float32, [None, n_classes])
-
-  # Graph weights
-  weights = {
-      'hidden': tf.Variable(tf.random_normal([n_input, n_hidden])), # Hidden layer weights
-      'out': tf.Variable(tf.random_normal([n_hidden, n_classes], mean=1.0))
-  }
-  biases = {
-      'hidden': tf.Variable(tf.random_normal([n_hidden])),
-      'out': tf.Variable(tf.random_normal([n_classes]))
-  }
-
-  pred = LSTM_RNN(x, weights, biases)
-
-  # Loss, optimizer and evaluation
-  l2 = lambda_loss_amount * sum(tf.nn.l2_loss(tf_var) for tf_var in tf.trainable_variables()) 
-  
-  # L2 loss prevents this overkill neural network to overfit the data
-  cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=pred)) + l2 # Softmax loss
-  if decaying_learning_rate:
-      learning_rate = tf.train.exponential_decay(init_learning_rate, global_step*batch_size, decay_steps, decay_rate, staircase=True)
-
-  #decayed_learning_rate = learning_rate * decay_rate ^ (global_step / decay_steps) #exponentially decayed learning rate
-  optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,global_step=global_step) # Adam Optimizer
-
-  correct_pred = tf.equal(tf.argmax(pred,1), tf.argmax(y,1))
-  accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
 # Define class type
 CLASS_TYPE = [
-    "push-up"
+    "push-up2",
 ]
 
 # Train for each dataset
@@ -125,7 +98,15 @@ for type_name in CLASS_TYPE:
     y = [1 for label in y]
 
     # Get negative dataset
-    neg_x, neg_y = get_dataset("not-" + type_name)
+    neg_x, neg_y = get_dataset("plank2")
+    # Fill original class type with the label 1
+    neg_y = [0 for label in neg_y]
+    x.extend(neg_x)
+    y.extend(neg_y)
+
+    # Get negative dataset
+    neg_x, neg_y = get_dataset("situp2")
+    neg_y = [2 for label in neg_y]
     x.extend(neg_x)
     y.extend(neg_y)
 
@@ -141,7 +122,6 @@ for type_name in CLASS_TYPE:
     x = _x
     y = _y
 
-
     # Split to training and test dataset
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.3)
 
@@ -152,7 +132,7 @@ for type_name in CLASS_TYPE:
 
     n_input = len(x_train[0][0])
     n_hidden = 22
-    n_classes = 2 
+    n_classes = 3
     decaying_learning_rate = True
     learning_rate = 0.0025 
     init_learning_rate = 0.005
@@ -165,7 +145,7 @@ for type_name in CLASS_TYPE:
     epochs = 500
     training_data_count = len(x_train)
 
-    training_iters = training_data_count * 300 # Loop 300 times on the dataset, ie 300 epochs
+    training_iters = training_data_count * 50 # Loop 50 times on the dataset, ie 50 epochs
     batch_size = 178
     # Originally 512
     display_iter = batch_size * 8  # To show test set accuracy during training
@@ -174,7 +154,7 @@ for type_name in CLASS_TYPE:
     unsampled_indices = range(0, len(x_train))
 
     # Graph input/output
-    x = tf.placeholder(tf.float32, [None, n_steps, n_input])
+    x = tf.placeholder(tf.float32, [None, n_steps, n_input], name="tf_data")
     y = tf.placeholder(tf.float32, [None, n_classes])
 
     # Graph weights
@@ -214,6 +194,7 @@ for type_name in CLASS_TYPE:
     sess.run(init)
 
     while step * batch_size <= training_iters:
+        saver = tf.train.Saver()
         #print (sess.run(learning_rate)) #decaying learning rate
         #print (sess.run(global_step)) # global number of iterations
         if len(unsampled_indices) < batch_size:
@@ -240,6 +221,7 @@ for type_name in CLASS_TYPE:
                 ":  Learning rate = " + "{:.6f}".format(sess.run(learning_rate)) + \
                 ":   Batch Loss = " + "{:.6f}".format(loss) + \
                 ", Accuracy = {}".format(acc))
+            save_path = saver.save(sess, checkpoint_path)
             
             # Evaluation on the test set (no learning made here - just evaluation for diagnosis)
             loss, acc = sess.run(
@@ -256,6 +238,7 @@ for type_name in CLASS_TYPE:
                 ", Accuracy = {}".format(acc))
 
         step += 1
+    
 
     # Accuracy for test data
     one_hot_predictions, accuracy, final_loss = sess.run(

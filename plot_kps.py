@@ -104,7 +104,6 @@ def normalize_keypoints_from_external_scaler(keypoint_frames, scaler):
     # Define MinMax'ed keypoints for each frame
     min_max_keypoint_frame = []
     for x in nom_keypoint_frame:
-        print(x)
         ret_val = scaler.transform(x) # ret_val is an array of keypoints (in other words Frames)
         min_max_keypoint_frame.append(ret_val)
 
