@@ -81,8 +81,10 @@ kp_index_by_int = {
     24: 'R_HEEL',      
 }
 
+# Get keypoints number/index in keypoint list
 def get_kp_index(index):
     return kp_index[index]
 
+# Get keypoint on the lookup dictionary
 def get_kp_index_by_int(index):
     return kp_index_by_int[index]

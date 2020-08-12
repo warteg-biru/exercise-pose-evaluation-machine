@@ -3,9 +3,8 @@ import numpy as np
 import urllib.parse
 from pymongo import MongoClient
 
-from keypoints_extractor import KeypointsExtractor
 from db_entity import insert_np_array_to_db
-from plot_kps import normalize_keypoints_from_external_scaler, make_min_max_scaler
+from keypoints_extractor import KeypointsExtractor, make_min_max_scaler, normalize_keypoints_from_external_scaler
 
 '''
 set_params
@@ -14,26 +13,15 @@ set_params
 '''
 # Set openpose default parameters
 def set_params():
-    params = dict()
     '''
-         params untuk menambah performance
-        '''
+    params untuk menambah performance
+    '''
+    params = dict()
     params["net_resolution"] = "320x176"
     params["face_net_resolution"] = "320x320"
     params["model_pose"] = "BODY_25"
-
-    # params["logging_level"] = 3
-    # params["output_resolution"] = "-1x-1"
-    # params["net_resolution"] = "-1x368"
-    # params["alpha_pose"] = 0.6
-    # params["scale_gap"] = 0.3
-    # params["scale_number"] = 1
-    # params["render_threshold"] = 0.05
-    # If GPU version is built, and multiple GPUs are available, set the ID here
-    # params["num_gpu_start"] = 0
-    # params["disable_blending"] = False
+    
     # Ensure you point to the correct path where models are located
-
     params["model_folder"] = './openpose/models'
     return params
 
@@ -64,6 +52,13 @@ R_BIG_TOE   = 22
 R_SMALL_TOE = 23
 R_HEEL      = 24
 
+'''
+validate_keypoints
+
+# Validate keypoints
+@params{list of frames} Array of frames
+@params{integer} Expected number of frames
+'''
 def validate_keypoints(frames, expected_frames):
     # If the actual frame count does not 
     # Equal to the expected frame count
@@ -91,6 +86,7 @@ if __name__ == '__main__':
     # Initialize dataset path
     dataset_path = '/home/kevin/projects/dataset-theo/Cut'
 
+    # Define keypoints
     kp_extractor = KeypointsExtractor()
     
     # Get all keypoints from dataset
@@ -98,11 +94,16 @@ if __name__ == '__main__':
     dirs = os.listdir(dataset_path)
     for foldername in dirs:
         try:
+            # Get all folder list
             folder = dataset_path + '/' + foldername
             files = os.listdir(folder)
+
+            # Repeat for every files
             for filename in files:
                 keypoints = []
                 class_type = 0
+
+                # Generate exercise for each exercise type
                 if foldername == "push-up":
                     all_exercise_reps, all_exercise_x_low, all_exercise_y_low = kp_extractor.scan_video_without_normalize(folder + '/' + filename, selected_keypoints)
                     scaler = make_min_max_scaler(all_exercise_reps, min(all_exercise_x_low), min(all_exercise_y_low))
@@ -127,16 +128,6 @@ if __name__ == '__main__':
                     if not validate_keypoints(normalized_reps, 48):
                         continue
                     class_type = 3
-                # elif foldername == "squat":
-                #     keypoints = kp_extractor.scan_video(folder + '/' + filename, selected_keypoints)
-                #     if not validate_keypoints(keypoints, 48):
-                #         continue
-                #     class_type = 4
-                # elif foldername == "dumbell-curl":
-                #     keypoints = kp_extractor.scan_video(folder + '/' + filename, selected_keypoints)
-                #     if not validate_keypoints(keypoints, 24):
-                #         continue
-                #     class_type = 5
 
                 # Insert keypoints to mongodb
                 insert_np_array_to_db(normalized_reps, class_type, foldername+"2")

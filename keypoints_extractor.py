@@ -9,6 +9,7 @@ from sklearn.preprocessing import MinMaxScaler
 from list_manipulator import pop_all
 import traceback
 
+# Get the local openpose path
 sys.path.append('/usr/local/python')
 
 try:
@@ -46,6 +47,11 @@ def set_params():
 
 '''
 normalize_keypoints
+
+# Normalize keypoints
+@params{list of keypoints} Array of keypoints
+@params{integer} lowest x coordinate
+@params{integer} lowest y coordinate
 '''
 # Get normalized keypoints
 def normalize_keypoints(keypoint, x_low, y_low):
@@ -76,6 +82,11 @@ def normalize_keypoints(keypoint, x_low, y_low):
 
 '''
 normalize_keypoints_for_plot_kps
+
+# Normalize keypoints purposefully for keypoint plotting
+@params{list of frames} Array of frames
+@params{integer} lowest x coordinate
+@params{integer} lowest y coordinate
 '''
 # Get normalized keypoints
 def normalize_keypoints_for_plot_kps(keypoint_frames, x_low, y_low):
@@ -123,6 +134,88 @@ def normalize_keypoints_for_plot_kps(keypoint_frames, x_low, y_low):
     return min_max_keypoint_frame
 
 
+'''
+make_min_max_scaler
+
+# Make min max scaler out of the coordinates from all frames
+@params{list of frames} Array of frames
+@params{integer} lowest x coordinate
+@params{integer} lowest y coordinate
+'''
+# Get normalized keypoints
+def make_min_max_scaler(keypoint_frames, x_low, y_low):
+    # Define normalized keypoints array
+    all_keypoints = []
+    # Define normalized keypoints array for each frames
+    nom_keypoint_frame = []
+    try:
+        for i, _ in enumerate(keypoint_frames):
+            # Define temporary array for normalized keypoints 
+            # (To be appended to normalized frame keypoints array)
+            nom_keypoint = []
+            for count, kp in enumerate(_):
+                # Avoid x=0 and y=0 because some keypoints that are not discovered
+                # If x=0 and y=0 than it doesn't need to be substracted with the
+                # lowest x and y points
+                if kp['x'] != 0 and kp['y'] != 0:
+                    x = kp['x'] - x_low
+                    y = kp['y'] - y_low
+                    nom_keypoint.append([x,y])
+                    all_keypoints.append([x,y])
+                else:
+                    nom_keypoint.append([kp['x'], kp['y']])
+                    all_keypoints.append([kp['x'], kp['y']])
+            
+            # Add keypoints for the selected frame to the array
+            nom_keypoint_frame.append(nom_keypoint)
+    except Exception as e:
+        print(str(e))
+        
+    # Normalize data between 0 to 1
+    scaler = MinMaxScaler(feature_range=(0,1))
+
+    # Fit the scaler according to all the keypoints
+    # From all the frames
+    scaler.fit(all_keypoints)
+
+    # Return normalized keypoint frames
+    return scaler
+
+
+'''
+normalize_keypoints_from_external_scaler
+
+# Normalize keypoints using an external scaler
+@params{list of frames} Array of frames
+@params{scaler} min max scaler
+'''
+# Get normalized keypoints
+def normalize_keypoints_from_external_scaler(keypoint_frames, scaler):
+    # Define normalized keypoints array for each frames
+    nom_keypoint_frame = []
+    try:
+        for i, _ in enumerate(keypoint_frames):
+            # Define temporary array for normalized keypoints 
+            # (To be appended to normalized frame keypoints array)
+            nom_keypoint = []
+            for count, kp in enumerate(_):
+                nom_keypoint.append([kp['x'], kp['y']])
+            
+            # Add keypoints for the selected frame to the array
+            nom_keypoint_frame.append(nom_keypoint)
+    except Exception as e:
+        print(str(e))
+
+    # Define MinMax'ed keypoints for each frame
+    min_max_keypoint_frame = []
+    for x in nom_keypoint_frame:
+        ret_val = scaler.transform(x) # ret_val is an array of keypoints (in other words Frames)
+        min_max_keypoint_frame.append(ret_val)
+
+    # Return normalized keypoint frames
+    return min_max_keypoint_frame
+
+
 class KeypointsExtractor:
     def __init__(self):
         params = set_params()
@@ -154,6 +247,7 @@ class KeypointsExtractor:
         L_WRIST     = 7
         MID_HIP     = 8
 
+        # Define bodyparts to get the selected keypoints
         BODY_PARTS = [NECK, R_SHOULDER, R_ELBOW, R_WRIST, L_SHOULDER, L_ELBOW, L_WRIST, MID_HIP]
 
         # Set tracker
@@ -254,10 +348,7 @@ class KeypointsExtractor:
                             "Keypoints": list_of_pose_temp[track_idx],
                             "ID": track.track_id
                         })
-            
-            # return_image = img
-            # if datum.cvOutputData is not None:
-            #     return_image = datum.cvOutputData
+                        
             return list_of_pose_and_id
         except Exception as e:
             traceback.print_exc()
@@ -287,6 +378,7 @@ class KeypointsExtractor:
         L_KNEE      = 13
         L_ANKLE     = 14
 
+        # Define bodyparts to get the selected keypoints
         BODY_PARTS = [NECK, R_SHOULDER, R_ELBOW, R_WRIST, L_SHOULDER, L_ELBOW, L_WRIST, MID_HIP, R_HIP, R_KNEE, R_ANKLE, L_HIP, L_KNEE, L_ANKLE]
 
         # Set tracker
@@ -412,6 +504,7 @@ class KeypointsExtractor:
         # Get output image
         output_image = datum.cvOutputData
 
+        # Define new array
         arr = []
         try:
             pop_all(arr)
@@ -615,6 +708,7 @@ class KeypointsExtractor:
                     x_high = int(x_high + width / 5)
                     x_low = int(x_low - width / 5)
 
+                    # Normalize keypoints by frame
                     normalized_keypoint = normalize_keypoints(arr, x_low, y_low)
                     list_of_pose.append(normalized_keypoint)
             except Exception as e:
@@ -637,11 +731,13 @@ class KeypointsExtractor:
         # Opening OpenCV stream
         stream = cv2.VideoCapture(video_path)
 
+        # Define list of pose, x low, and y low
         list_of_pose = []
         list_of_x_low = []
         list_of_y_low = []
         while True:
             try:
+                # Stream
                 ret, imageToProcess = stream.read()
                 datum = op.Datum()
                 datum.cvInputData = imageToProcess
@@ -707,8 +803,8 @@ class KeypointsExtractor:
                     x_high = int(x_high + width / 5)
                     x_low = int(x_low - width / 5)
 
+                    # Append list of pose, x low, and y low
                     list_of_pose.append(arr)
-                    list_of_x_low.append(x_low)
                     list_of_y_low.append(y_low)
             except Exception as e:
                 print(e)
@@ -853,9 +949,10 @@ class KeypointsExtractor:
     @params {string} image path
     '''
     def get_upper_body_keypoint(self, image_path):
+        # Get keypoints from image
         keypoints = self.scan_image(image_path)
+
         # KP ordering of body parts
-        NECK        = 1
         R_SHOULDER  = 2
         R_ELBOW     = 3
         R_WRIST     = 4
@@ -864,8 +961,10 @@ class KeypointsExtractor:
         L_WRIST     = 7
         MID_HIP     = 8
 
+        # Define bodyparts to get the selected keypoints
         BODY_PARTS = [NECK, R_SHOULDER, R_ELBOW, R_WRIST, L_SHOULDER, L_ELBOW, L_WRIST, MID_HIP]
 
+        # Define keypoints array to be returned
         new_keypoints = []
         for index, keypoint in enumerate(keypoints):
             if index in BODY_PARTS:
