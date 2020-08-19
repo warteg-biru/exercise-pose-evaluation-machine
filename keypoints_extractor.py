@@ -622,7 +622,7 @@ class KeypointsExtractor:
             x_high = int(x_high + width / 5)
             x_low = int(x_low - width / 5)
 
-            return arr, x_low, y_low
+            return arr, x_low, y_low, output_image
         except Exception as e:
             print(e)
 
@@ -805,6 +805,7 @@ class KeypointsExtractor:
 
                     # Append list of pose, x low, and y low
                     list_of_pose.append(arr)
+                    list_of_x_low.append(x_low)
                     list_of_y_low.append(y_low)
             except Exception as e:
                 print(e)

@@ -93,15 +93,16 @@ if __name__ == '__main__':
     # and insert into database
     dirs = os.listdir(dataset_path)
     for foldername in dirs:
-        try:
-            # Get all folder list
-            folder = dataset_path + '/' + foldername
-            files = os.listdir(folder)
+        # Get all folder list
+        folder = dataset_path + '/' + foldername
+        files = os.listdir(folder)
 
-            # Repeat for every files
-            for filename in files:
+        # Repeat for every files
+        for filename in files:
+            try:
                 keypoints = []
                 class_type = 0
+                print("Processing file: " + filename)
 
                 # Generate exercise for each exercise type
                 if foldername == "push-up":
@@ -130,6 +131,6 @@ if __name__ == '__main__':
                     class_type = 3
 
                 # Insert keypoints to mongodb
-                insert_np_array_to_db(normalized_reps, class_type, foldername+"2")
-        except Exception as e:
-            print(e)
+                insert_np_array_to_db(normalized_reps, class_type, foldername)
+            except Exception as e:
+                print(e)

@@ -51,4 +51,5 @@ def make_inverse_dataset(class_type):
 
 # Initiate function
 if __name__ == '__main__':
-    make_inverse_dataset("push-up2")
+    for x in CLASS_TYPE:
+        make_inverse_dataset(x)

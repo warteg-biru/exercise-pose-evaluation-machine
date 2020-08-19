@@ -2,6 +2,9 @@ import os
 import time
 import random
 
+import sys
+sys.path.append('/home/kevin/projects/exercise_pose_evaluation_machine/')
+
 # Set minimum logging to level 3 to prevent noisy command line
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
@@ -52,14 +55,6 @@ def LSTM_RNN(_X, _weights, _biases):
     lstm_last_output = outputs[-1]
     
     
-
-    print(tf.math.add(
-        tf.matmul(lstm_last_output, _weights['out']),
-        _biases['out'],
-        name='predict'
-    ))
-    import time 
-    time.sleep(20)
     return tf.math.add(
         tf.matmul(lstm_last_output, _weights['out']),
         _biases['out'],
@@ -176,7 +171,6 @@ for type_name in CLASS_TYPE:
         'hidden': tf.Variable(tf.random_normal([n_hidden])),
         'out': tf.Variable(tf.random_normal([n_classes]))
     }
-
     pred = LSTM_RNN(x, weights, biases)
 
     # Loss, optimizer and evaluation

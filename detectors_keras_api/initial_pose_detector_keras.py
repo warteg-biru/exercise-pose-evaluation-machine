@@ -1,5 +1,4 @@
 import os
-import sys
 import cv2
 import numpy as np
 import collections
@@ -7,11 +6,8 @@ import collections
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Dense, Dropout
 
-from deep_sort import nn_matching
-from deep_sort import preprocessing
-from deep_sort.detection import Detection
-from deep_sort.tracker import Tracker
-from deep_sort.tools.generate_detections import create_box_encoder
+import sys
+sys.path.append('/home/kevin/projects/exercise_pose_evaluation_machine/')
 
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import OneHotEncoder
