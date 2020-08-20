@@ -15,9 +15,26 @@ class AngleCalculator():
         return math.degrees(np.arccos((np.square(a) + np.square(b) - np.square(c)) / (2 * a * b)))
 
     def get_angle_from_three_keypoints(self, kp_1, kp_2, target_kp):
-        a = self.distance(kp_1['x'], kp_1['y'], target_kp['x'], target_kp['y'])
-        b = self.distance(kp_2['x'], kp_2['y'], target_kp['x'], target_kp['y'])
-        c = self.distance(kp_1['x'], kp_1['y'], kp_2['x'], kp_2['y'])
+        kp_1_x = kp_1_y = kp_2_x = kp_2_y = target_kp_x = target_kp_y = None
+
+        if type(kp_1) == dict:
+            kp_1_x = kp_1['x']
+            kp_1_y = kp_1['y']
+            kp_2_x = kp_2['x']
+            kp_2_y = kp_2['y']
+            target_kp_x = target_kp['x']
+            target_kp_y = target_kp['y']
+        else:
+            kp_1_x = kp_1[0]
+            kp_1_y = kp_1[1]
+            kp_2_x = kp_2[0]
+            kp_2_y = kp_2[1]
+            target_kp_x = target_kp[0]
+            target_kp_y = target_kp[1]
+
+        a = self.distance(kp_1_x, kp_1_y, target_kp_x, target_kp_y)
+        b = self.distance(kp_2_x, kp_2_y, target_kp_x, target_kp_y)
+        c = self.distance(kp_1_x, kp_1_y, kp_2_x, kp_2_y)
         return self.find_angle(a, b, c)
 
 '''

@@ -34,8 +34,27 @@ class PoseDetector:
         except Exception as e:
             print(e)
 
+def test():
+    pose_detector = PoseDetector("push-up")
+    kp_extractor = KeypointsExtractor()
+    
+    file_path = '/home/kevin/projects/initial-pose-data/videos/push-up/push-up0.mp4'
+    # Opening OpenCV stream
+    stream = cv2.VideoCapture(file_path)
+    while True:
+        try:
+            ret, imageToProcess = stream.read()
+        except Exception as e:
+            # Break at end of frame
+            break
 
-if __name__ == '__main__':
+        list_of_keypoints = kp_extractor.get_keypoints_and_id_from_img(imageToProcess)
+        x = list_of_keypoints[0]
+        keypoints = np.array(x['Keypoints']).flatten()
+        prediction = pose_detector.predict(np.array([keypoints]))
+        print(np.argmax(prediction[0]))
+
+def train():
     # Initialize base path
     base_path = '/home/kevin/projects/initial-pose-data/pos-negs'
 
@@ -87,7 +106,7 @@ if __name__ == '__main__':
         # Define number of features, labels, and hidden
         num_features = 28 # 14 pairs of (x, y) keypoints
         num_hidden = 8
-        num_labels = 4
+        num_labels = 2
         
         '''
         build_model
@@ -101,6 +120,7 @@ if __name__ == '__main__':
         model = Sequential()
         # model.add(Dropout(0.2, input_shape=(num_features,)))
         model.add(Dense(12, input_dim=num_features, activation='relu'))
+        model.add(Dropout(0.2))
         model.add(Dense(num_hidden, activation='relu'))
         model.add(Dense(num_labels, activation='softmax'))
         model.compile(loss='sparse_categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
@@ -111,8 +131,13 @@ if __name__ == '__main__':
         # Find accuracy
         _, accuracy = model.evaluate(X_test, y_test)
         print('Accuracy: %.2f' % (accuracy*100))
+        print("Class: " + class_name)
 
         # Save model to the designated path
         model.save(save_path)
+        model.summary()
         print(label_encoder.classes_)
         print("Saved model")
+        
+if __name__ == '__main__':
+    test()

@@ -24,8 +24,11 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 
 from keypoints_extractor import KeypointsExtractor
-from right_hand_detector_keras import RightHandUpDetector
-from initial_pose_detector_keras import InitialPoseDetector
+from detectors_keras_api.right_hand_detector_keras import RightHandUpDetector
+from detectors_keras_api.initial_pose_detector_keras import InitialPoseDetector
+from pose_detector_keras import PoseDetector
+
+from list_manipulator import pop_all
 
 
 if __name__ == '__main__':
@@ -48,6 +51,7 @@ if __name__ == '__main__':
     # Define detectors
     right_hand_up_detector = RightHandUpDetector()
     initial_pose_detector = InitialPoseDetector()
+    pose_detector = PoseDetector("push-up")
 
     while True:
         try:
@@ -59,6 +63,11 @@ if __name__ == '__main__':
         # Foreach keypoint predict user data
         found_counter = 0
         found_id = None
+        found_exercise = None
+        
+        list_of_frames = []
+        start = False
+        end = False
 
         if target_detected_flag == False:
             # Get keypoint and ID data
@@ -73,7 +82,6 @@ if __name__ == '__main__':
                     # Get prediction
                     try:
                         prediction = right_hand_up_detector.predict(keypoints)
-                        print('right hand up detector predicted -> ', prediction)
                     except Exception as e:
                         print(e)
 
@@ -90,11 +98,11 @@ if __name__ == '__main__':
                     target_detected_flag = True
                     target_id = found_id
                     t_end = time.time() + 10
+                    found_counter = 0
 
             except Exception as e:
-                # Break at end of frame
                 pass
-        else:
+        elif init_pose_detected == False:
             # Get keypoint and ID data
             list_of_keypoints = kp_extractor.get_keypoints_and_id_from_img(imageToProcess)
             try: 
@@ -103,10 +111,13 @@ if __name__ == '__main__':
                         # Transform keypoints list to array
                         keypoints = np.array(x['Keypoints']).flatten().astype(np.float32)
                         keypoints = np.array([keypoints])
+
                         # Get prediction
                         prediction = initial_pose_detector.predict(keypoints)
+                        found_exercise = prediction
                         print("Initital pose prediction result: " + prediction)
-                      init_pose_detected = True
+            
+                        init_pose_detected = True
                     else:
                         # If not target
                         pass
@@ -116,11 +127,65 @@ if __name__ == '__main__':
                 traceback.print_exc()
                 print(e)
                 pass
+        else:
+            # Get keypoint and ID data
+            list_of_keypoints = kp_extractor.get_keypoints_and_id_from_img(imageToProcess)
+            try: 
+                if list_of_keypoints == None:
+                    break
+                x = list_of_keypoints[0]
+                if x['ID'] == target_id and t_end <= time.time():
+                    # Transform keypoints list to array
+                    keypoints = np.array(x['Keypoints']).flatten()
+
+                    # Get prediction
+                    prediction = pose_detector.predict(np.array([keypoints]))
+
+                    # If starting position is found and start is True then mark end
+                    if np.argmax(prediction[0]) == 1 and start:
+                        end = True
+                    
+                    # If starting position is found and end is False then mark start
+                    if np.argmax(prediction[0]) == 1 and not end:
+                        start = True
+
+                        # If the found counter is more than one
+                        # Delete frames and restart collection
+                        if len(list_of_frames) >= 1:
+                            pop_all(list_of_frames)
+
+                    # Add frames
+                    list_of_frames.append(keypoints)
+
+                    # If both start and end was found 
+                    # send data to LSTM model and Plotter
+                    if start and end:
+                        # Send data
+
+                        # Pop all frames in list
+                        pop_all(list_of_frames)
+
+                        # Restart found_counter, start flag and end flag
+                        start = True
+                        end = False
+
+                        # Add frames
+                        list_of_frames.append(keypoints)
+                else:
+                    # If not target
+                    pass
+                    
+            except Exception as e:
+                # Break at end of frame
+                traceback.print_exc()
+                print(e)
+                pass
+
             
         # Display the stream
         cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", imageToProcess)
         key = cv2.waitKey(1)
 
         # Quit
-        if key == ord('q') or init_pose_detected:
+        if key == ord('q'):
             break
