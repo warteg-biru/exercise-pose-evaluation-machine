@@ -3,6 +3,7 @@ import numpy as np
 import urllib.parse
 from pymongo import MongoClient
 import matplotlib.pyplot as plt
+import statistics
 from list_manipulator import pop_all
 from sklearn.preprocessing import MinMaxScaler
 from angle_calculator import AngleCalculator
@@ -62,6 +63,38 @@ def get_angles_from_frames(pose_frames):
         angles_list.append(angle)
     return angles_list
 
+def get_average_angles(to_be_averaged):
+    average_list = [0 for x in to_be_averaged[0]]
+    skipped_videos = 0
+    for idx, x in enumerate(to_be_averaged):
+        if len(average_list) == len(x):
+            for i, angle in enumerate(x):
+                average_list[i] += angle
+        else:
+            skipped_videos += 1
+
+    num_of_videos = len(to_be_averaged) - skipped_videos
+    for idx, x in enumerate(average_list):
+        average_list[idx] /= num_of_videos
+
+    return average_list
+
+# Nge tes
+def __get_average_angles(to_be_averaged):
+    minimum_length_of_arr = len(to_be_averaged[0])
+    # filter array yang panjang nya tidak sama
+    to_be_averaged = [arr for arr in to_be_averaged if len(arr) == minimum_length_of_arr]
+    result = [statistics.mean(k) for k in zip(*to_be_averaged)]
+    return result
+
+
+def get_average_angles_from_poses(list_of_poses):
+    to_be_averaged = []
+    for pose_frames in list_of_poses:
+        angles_list = get_angles_from_frames(pose_frames)
+        to_be_averaged.append(angles_list)
+    return average_angles(to_be_averaged)
+
 # Plot the keypoints
 def plot_angles(list_of_poses, num_videos, exercise_name):
     fig, cells = plt.subplots(nrows=num_videos, ncols=1, squeeze=False)
@@ -82,23 +115,41 @@ def plot_angles(list_of_poses, num_videos, exercise_name):
     # Show plot
     plt.show()
 
-def plot_angles_in_one_plot(list_of_poses, exercise_name):
+def plot_average_angles_in_one_plot(list_of_poses, exercise_name):
     fig, cells = plt.subplots(nrows=1, ncols=1, squeeze=False)
     fig.suptitle(f'{exercise_name} key angle in each frame')
+
     # Loop each frame
+    to_be_averaged = []
     for pose_frames in list_of_poses:
         setup_plot(cells, 0, 'Sit Up', xlim=[1, 48])
         # get all the angles
         angles_list = get_angles_from_frames(pose_frames)
+        to_be_averaged.append(angles_list)
         # Get the total number of frames
         frame_indexes = [idx + 1 for idx in range(len(pose_frames))]
         # Plot the change in angles over the frames
-        cells[0, 0].plot(frame_indexes, angles_list)
+        cells[0, 0].plot(frame_indexes, angles_list, color="lightgray")
+
+    average_angles = __get_average_angles(to_be_averaged)
+    cells[0, 0].plot(frame_indexes, average_angles, color="red")
+
     for cell in cells.flat:
         cell.set(xlabel='Frames')
     # Show plot
-    plt.show()
+    from scipy.spatial.distance import euclidean
 
+    from fastdtw import fastdtw
+    
+    dist_array = []
+    for idx, data in enumerate(to_be_averaged):
+        x = np.array([average_angles])
+        y = np.array([data])
+        distance, path = fastdtw(x, y, dist=euclidean)
+        dist_array.append(distance)
+
+    print("Max distance: " + str(max(dist_array)))
+    plt.show()
 
 if __name__ == '__main__':
     # Initialize video path
@@ -108,6 +159,7 @@ if __name__ == '__main__':
     # video_paths = [f'{push_up_dir}/{file}' for file in os.listdir(push_up_dir)]
     # video_paths = [f'{plank_dir}/{file}' for file in os.listdir(plank_dir) ]
     video_paths = [f'{situp_dir}/{file}' for file in os.listdir(situp_dir) ]
+    video_paths = video_paths[:20]
 
     # Set from 
     sets = []
@@ -137,4 +189,4 @@ if __name__ == '__main__':
     num_videos = len(video_paths)
     body_parts_to_show = [0,1,2,3,4,5,6,7,8,9,10,11,12,13]
     # plot_angles(normalized_sets, num_videos, 'Sit Up')
-    plot_angles_in_one_plot(normalized_sets, 'Sit Up')
+    plot_average_angles_in_one_plot(normalized_sets, 'Sit Up')
