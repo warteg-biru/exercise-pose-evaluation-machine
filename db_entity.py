@@ -1,5 +1,31 @@
 import urllib.parse
 from pymongo import MongoClient
+import numpy as np
+
+
+class DBEntity():
+    def __init__(self):
+        username = urllib.parse.quote_plus('mongo')
+        password = urllib.parse.quote_plus('mongo') 
+        self.conn = MongoClient('mongodb://%s:%s@127.0.0.1' % (username, password))
+        self.db = self.conn["PoseMachine"]
+
+    def convert_np_array_to_list(self, np_array):
+        list_arr = np.array(np_array).tolist()
+        return list_arr
+
+    def insert_average_angles(self, angles: list, class_name: str):
+        collection = self.db["average_angles"]
+        angles = self.convert_np_array_to_list(angles)
+        try:
+            average_angles_dict = {
+                'angles': angles,
+                'class_name': class_name,
+            }
+            collection.insert_one(average_angles_dict) 
+        except Exception as e:
+            print(e)
+        
 
 '''
 insert_threshold_to_db

@@ -1,12 +1,12 @@
 import os
+import statistics
 import numpy as np
 import urllib.parse
 from pymongo import MongoClient
 import matplotlib.pyplot as plt
-import statistics
 from list_manipulator import pop_all
-from sklearn.preprocessing import MinMaxScaler
 from angle_calculator import AngleCalculator
+from sklearn.preprocessing import MinMaxScaler
 
 from kp_index import get_kp_index_by_int
 
