@@ -8,6 +8,7 @@ import sys
 sys.path.append('/home/kevin/projects/exercise_pose_evaluation_machine/')
 
 import collections
+import random
 import numpy as np
 from numpy import array
 import matplotlib.pyplot as plt
@@ -41,6 +42,7 @@ for type_name in CLASS_TYPE:
 
     # Get negative dataset
     neg_x, neg_y = get_dataset("not-" + type_name)
+    
     # Fill original class type with the label 1
     neg_y = [0 for label in neg_y]
     x.extend(neg_x)
@@ -84,7 +86,7 @@ for type_name in CLASS_TYPE:
     # Initiate model
     model = Sequential()
     model.add(lstm_layer)
-    model.add(Dropout(0.2))
+    model.add(Dropout(0.5))
     model.add(Dense(n_classes, 
             activation='sigmoid',
             kernel_regularizer=regularizers.l2(0.01),
@@ -92,7 +94,7 @@ for type_name in CLASS_TYPE:
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     
     # Train model
-    model.fit(x_train, y_train, epochs=25, batch_size=10)
+    model.fit(x_train, y_train, epochs=25, batch_size=10, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4)
 
     # Print model stats
     print(model.summary())
@@ -100,6 +102,11 @@ for type_name in CLASS_TYPE:
     # Find accuracy
     _, accuracy = model.evaluate(x_test, y_test)
     print('Accuracy: %.2f' % (accuracy*100))
+
+    # Generate predictions
+    print("See prediction result")
+    prediction = model.predict(x_test[random.randint(0, len(x_test))])
+    print("predictions result:", prediction)
 
     # Save model
     model.save(save_path)

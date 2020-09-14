@@ -1,5 +1,6 @@
 import os
 import cv2
+import traceback
 import numpy as np
 import collections
 
@@ -24,7 +25,7 @@ def load_saved_model(model_path):
 
 class InitialPoseDetector:
     def __init__(self):
-        MODEL_PATH = 'models/initial_pose_model/initial_pose_model.h5'
+        MODEL_PATH = '/home/kevin/projects/exercise_pose_evaluation_machine/models/initial_pose_model/initial_pose_model.h5'
         self.model = load_saved_model(MODEL_PATH)
 
     def predict(self, data):
@@ -32,8 +33,8 @@ class InitialPoseDetector:
             assert data.shape == (1, 28)
             prediction = self.model.predict(data)
             return self.get_exercise_name_from_prediction(prediction)
-        except Exception as e:
-            print(e)
+        except BaseException as e:
+            traceback.print_exc()
 
     '''
     Result lookup
@@ -44,20 +45,18 @@ class InitialPoseDetector:
     #pushup -> 3
     '''
     def get_exercise_name_from_prediction(self, prediction):
+        print(prediction)
         res_lookup = ['plank', 'sit-up', 'dumbell-curl', 'push-up']
         # prediction shape is (1, 4)
         exercise_index = np.argmax(prediction[0])
+        if prediction[0][exercise_index] < 0.6:
+            print(exercise_index, prediction[0][exercise_index])
+            return -1
         return res_lookup[exercise_index]
-
-        try:
-            assert data.shape == (1, 28)
-            prediction = self.model.predict(data)
-            return self.get_exercise_name_from_prediction(prediction)
-        except Exception as e:
-            print(e)
+       
 
 
-if __name__ == '__main__':
+def train():
     # Initialize paths
     base_path = '/home/kevin/projects/Exercise Starting Pose'
     save_path = "/home/kevin/projects/exercise_pose_evaluation_machine/models/initial_pose_model/initial_pose_model.h5"
@@ -158,3 +157,40 @@ if __name__ == '__main__':
     # Save model to the designated path
     model.save(save_path)
     print("Saved model")
+
+
+def test(test_file_path):
+    initial_pose_detector = InitialPoseDetector()
+    kp_extractor = KeypointsExtractor()
+    # Opening OpenCV stream
+    stream = cv2.VideoCapture(test_file_path)
+    while True:
+        # Stream --
+        try:
+            ret, imageToProcess = stream.read()
+        except Exception as e:
+            # Break at end of frame
+            print(e)
+            break
+        cv2.imshow("Initail Pose Detector Test", imageToProcess)
+        key = cv2.waitKey(1)
+        # Get keypoints and predict
+        list_of_keypoints = kp_extractor.get_keypoints_and_id_from_img(imageToProcess)
+        try: 
+            for x in list_of_keypoints:
+                # Transform keypoints list to array
+                keypoints = np.array(x['Keypoints']).flatten().astype(np.float32)
+                keypoints = np.array([keypoints])
+                # Get prediction
+                prediction = initial_pose_detector.predict(keypoints)
+                found_exercise = prediction
+                print("Initial pose prediction result: " + str(prediction))
+        except Exception as e:
+            print(e)
+
+
+
+if __name__ == '__main__':
+    test_file_path = "/home/kevin/projects/dataset-handsup-to-exercise/pushup.mp4.mp4"
+    test(test_file_path)
+    # train()

@@ -199,7 +199,7 @@ get_dataset_with_limit
 # Get data from MongoDB with limit
 '''
 # Get from Mongo DB
-def get_dataset_with_limit(collection_name, limit):
+def get_dataset_with_limit(collection_name, required_count, limit):
     # Initialize temp lists
     list_of_poses = []
     list_of_labels = []
@@ -221,7 +221,18 @@ def get_dataset_with_limit(collection_name, limit):
         # try catch for MongoDB insert
         try:
             for x in collection.find():
-                list_of_poses.append(x["list_of_pose"])
+                # Save list of poses to a temporary list
+                # Check if length is more than the required, if so take portion of the array
+                temp_list_of_poses = []
+                temp_list_of_poses = x["list_of_pose"][:required_count] if len(x["list_of_pose"]) > required_count else x["list_of_pose"]
+
+                # Add poses to temporary list
+                while len(temp_list_of_poses) < required_count:
+                    add_count = len(x["list_of_pose"]) if required_count - len(temp_list_of_poses) > len(x["list_of_pose"]) else required_count - len(temp_list_of_poses)
+                    temp_list_of_poses.extend(x["list_of_pose"][:add_count])
+
+                # Append to final list
+                list_of_poses.append(temp_list_of_poses)
                 list_of_labels.append(x["exercise_type"])
                 if len(list_of_poses) == limit:
                     break

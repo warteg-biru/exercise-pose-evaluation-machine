@@ -348,6 +348,8 @@ class KeypointsExtractor:
                             "Keypoints": list_of_pose_temp[track_idx],
                             "ID": track.track_id
                         })
+
+
                         
             return list_of_pose_and_id
         except Exception as e:
@@ -1101,3 +1103,61 @@ class KeypointsExtractor:
                 new_keypoints.append(keypoint)
         
         return new_keypoints
+
+
+    '''
+    get_min_max
+
+    # Get min max coordinates
+    @params {keypoints} keypoints
+    '''
+    def get_min_max(self, keypoints):
+        x_min = 9999999
+        y_min = 9999999
+        x_max = 0
+        y_max = 0
+        for keypoint in keypoints:
+            x_min = keypoint['x'] if keypoint['x'] < x_min else x_min 
+            x_max = keypoint['x'] if keypoint['x'] > x_max else x_max
+            y_min = keypoint['y'] if keypoint['y'] < y_min else y_min
+            y_max = keypoint['y'] if keypoint['y'] > y_max else y_max
+
+        return x_min, y_min, x_max, y_max
+        
+    '''
+    get_bounded_coordinates
+
+    # Get keypoints from the image
+    @params {string} image path
+    '''
+    def get_bounded_coordinates(self, prediction, imageToProcess):
+        # Define min-max and length of the person
+        kp = self.get_keypoints_and_id_from_img_without_normalize(imageToProcess)
+        x_min, y_min, x_max, y_max = self.get_min_max(kp[0]['Keypoints'])
+        x_length = x_max - x_min
+        y_length = y_max - y_min
+
+        # Get image dimensions
+        dimensions = imageToProcess.shape
+        width = dimensions[1]
+        height = dimensions[0]
+
+        # Make padding according to exercise type
+        if prediction == "sit-up":
+            x_min = x_min - (x_length * 5 / 100) if x_min - (x_length * 5 / 100) >= 0  else x_min
+            x_max = x_max + (x_length * 5 / 100) if x_max + (x_length * 5 / 100) <= width else x_max
+            y_min = y_min - (y_length * 30 / 100) if y_min - (y_length * 30 / 100) >= 0 else y_min
+            y_max = y_max + (y_length * 5 / 100) if y_max + (y_length * 5 / 100) <= height else y_max
+        elif prediction == "push-up":
+            x_min = x_min - (x_length * 5 / 100) if x_min - (x_length * 5 / 100) >= 0   else x_min
+            x_max = x_max + (x_length * 5 / 100) if x_max + (x_length * 5 / 100) <= width else x_max
+            y_min = y_min - (y_length * 10 / 100) if y_min - (y_length * 10 / 100) >= 0   else y_min
+            y_max = y_max + (y_length * 10 / 100) if y_max + (y_length * 10 / 100) <= height else x_min
+        elif prediction == "plank":
+            x_min = x_min - (x_length * 20 / 100) if x_min - (x_length * 20 / 100) >= 0  else x_min
+            x_max = x_max + (x_length * 30 / 100) if x_max + (x_length * 30 / 100) <= width else x_max
+            y_min = y_min - (y_length * 10 / 100) if y_min - (y_length * 10 / 100) >= 0 else y_min
+            y_max = y_max + (y_length * 10 / 100) if y_max + (y_length * 10 / 100) <= height else y_max
+        
+        # Return bounded coordinates
+        return x_min, y_min, x_max, y_max

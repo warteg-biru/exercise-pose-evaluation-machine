@@ -1,8 +1,8 @@
 import os
 import sys
-import numpy as np
-import math
 import cv2
+import math
+import numpy as np
 from keypoints_extractor import KeypointsExtractor
 from kp_index import NECK, MID_HIP, L_KNEE
 

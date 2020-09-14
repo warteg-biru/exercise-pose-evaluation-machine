@@ -29,7 +29,7 @@ from detectors_keras_api.initial_pose_detector_keras import InitialPoseDetector
 from pose_detector_keras import PoseDetector
 
 from list_manipulator import pop_all
-
+from image_manipulator import crop_image_based_on_padded_bounded_box
 
 if __name__ == '__main__':
     # Base paths
@@ -53,13 +53,21 @@ if __name__ == '__main__':
     initial_pose_detector = InitialPoseDetector()
     pose_detector = PoseDetector("push-up")
 
+    # Define x_min, y_min, x_max, y_max
+    x_min = -1
+    y_min = -1
+    x_max = -1
+    y_max = -1
+
+    bbox = []
     while True:
-        try:
-            ret, imageToProcess = stream.read()
-        except Exception as e:
-            # Break at end of frame
+        ret, imageToProcess = stream.read()
+        if imageToProcess is None:
             break
         
+        if x_min > -1 and y_min > -1 and x_max > -1 and y_max > -1:
+            imageToProcess = crop_image_based_on_padded_bounded_box(x_min, y_min, x_max, y_max, imageToProcess)
+
         # Foreach keypoint predict user data
         found_counter = 0
         found_id = None
@@ -88,48 +96,51 @@ if __name__ == '__main__':
                     if prediction == 1:
                         found_counter+=1
                         found_id = x['ID']
+                        
 
                     if found_counter > 1:
                         print("Too many people raised their hands!")
-                        pass
+                        continue
                     
                 if found_counter == 1:
                     print("Person " + str(found_id) + " raised their hand")
                     target_detected_flag = True
                     target_id = found_id
-                    t_end = time.time() + 10
+                    t_end = time.time() + 5
                     found_counter = 0
 
             except Exception as e:
-                pass
+                traceback.print_exc()
+                print(e)
         elif init_pose_detected == False:
             # Get keypoint and ID data
             list_of_keypoints = kp_extractor.get_keypoints_and_id_from_img(imageToProcess)
+
             try: 
                 for x in list_of_keypoints:
-                    if x['ID'] == target_id and t_end <= time.time():
+                    if x['ID'] == target_id:
                         # Transform keypoints list to array
                         keypoints = np.array(x['Keypoints']).flatten().astype(np.float32)
                         keypoints = np.array([keypoints])
 
                         # Get prediction
                         prediction = initial_pose_detector.predict(keypoints)
-                        found_exercise = prediction
-                        print("Initital pose prediction result: " + prediction)
-            
-                        init_pose_detected = True
+                        if prediction != -1:
+                            found_exercise = prediction
+                            print("Initial pose prediction result: " + str(prediction))
+
+                            init_pose_detected = True
+                            x_min, y_min, x_max, y_max = kp_extractor.get_bounded_coordinates(prediction, imageToProcess)
                     else:
                         # If not target
-                        pass
+                        continue
                     
             except Exception as e:
-                # Break at end of frame
-                traceback.print_exc()
                 print(e)
-                pass
         else:
             # Get keypoint and ID data
             list_of_keypoints = kp_extractor.get_keypoints_and_id_from_img(imageToProcess)
+
             try: 
                 if list_of_keypoints == None:
                     break
@@ -173,15 +184,12 @@ if __name__ == '__main__':
                         list_of_frames.append(keypoints)
                 else:
                     # If not target
-                    pass
+                    continue
                     
             except Exception as e:
-                # Break at end of frame
                 traceback.print_exc()
                 print(e)
-                pass
 
-            
         # Display the stream
         cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", imageToProcess)
         key = cv2.waitKey(1)

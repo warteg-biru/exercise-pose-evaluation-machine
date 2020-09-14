@@ -1,14 +1,22 @@
-from db_entity import get_count, get_dataset_with_limit, insert_array_to_db
+import sys
+
+sys.path.append('/home/kevin/projects/exercise_pose_evaluation_machine/')
+
 from keypoints_extractor import pop_all
+from db_entity import get_count, get_dataset_with_limit, insert_array_to_db
+
 
 # Define class types for each exercise  
 CLASS_TYPE = [
-    "dumbell-curl",
-    "push-up",
-    # "sit-up",
+    "push-up"
+    # "plank",
+    # "sit-up"
     # "squat",
-    "plank"
+    # "dumbell-curl",
 ]
+
+def get_class_type_frame_length(class_type):
+    return 48 if class_type == "sit-up" else 24
 
 '''
 make_inverse_dataset
@@ -37,7 +45,10 @@ def make_inverse_dataset(class_type):
     # Get inverse dataset for each class type
     for x in count_per_class:
         limit = x["count"] / total_count * class_type_count
-        temp_list_of_poses, temp_list_of_labels = get_dataset_with_limit(x["class_type"], limit)
+        temp_list_of_poses, temp_list_of_labels = get_dataset_with_limit(
+            x["class_type"], 
+            get_class_type_frame_length(class_type), 
+            limit)
         list_of_poses.extend(temp_list_of_poses)
         list_of_labels.extend(temp_list_of_labels)
 

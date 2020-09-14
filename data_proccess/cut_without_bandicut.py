@@ -3,16 +3,16 @@ from moviepy.editor import *
 from moviepy.video.fx.speedx import speedx
 
 # Define base path for the dataset
-base_path = '/home/kevin/Videos/dataset-pushup-squats/cut-combined/pushup'
-save_path = '/home/kevin/Videos/dataset-pushup-squats/final/pushup'
+base_path = '/home/kevin/projects/auto-cut/edited'
+save_path = '/home/kevin/projects/auto-cut/sit-up-optimized'
 
 final_duration = {
-        'plank': 1,
-        'situp': 2,
-        'pushup': 1,
-        'dumbell-curl': 1,
-        'squat': 2,
-        }
+    'plank': 1,
+    'situp': 2,
+    'pushup': 1,
+    'dumbell-curl': 1,
+    'squat': 2,
+}
 
 def cut_video(file_path, filename):
     # Get clip duration
@@ -20,7 +20,7 @@ def cut_video(file_path, filename):
     duration = clip.duration
     
     # Speedup clip
-    clip = speedx(clip=clip, final_duration=final_duration['pushup'])
+    clip = speedx(clip=clip, final_duration=final_duration['situp'])
 
     # Define directory and size
     if not os.path.exists(save_path):
