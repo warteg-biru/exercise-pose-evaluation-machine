@@ -27,9 +27,8 @@ from tensorflow.keras.layers import LSTMCell, StackedRNNCells, RNN, Permute, Res
 
 CLASS_TYPE = [
     "push-up",
-    "sit-up",
-    "dumbell-curl",
-    "plank"
+    "sit-up"
+    # "plank"
 ]
 
 for type_name in CLASS_TYPE:
@@ -58,10 +57,10 @@ for type_name in CLASS_TYPE:
             _x.append(data)
             _y.append(y[idx])
     x = _x
+    y = _y
 
     # Split to training and test dataset
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.3)
-
     x_train = np.array(x_train)
     x_test = np.array(x_test)
     y_train = np.array(y_train)
@@ -70,7 +69,7 @@ for type_name in CLASS_TYPE:
     # Define training parameters
     n_input = len(x_train[0][0])
     n_hidden = 22
-    n_classes = 2
+    n_classes = 1
 
     # Make LSTM Layer
     # Pair of lstm cell initialization through loop
@@ -103,11 +102,15 @@ for type_name in CLASS_TYPE:
     _, accuracy = model.evaluate(x_test, y_test)
     print('Accuracy: %.2f' % (accuracy*100))
 
+    # Save model
+    model.save(save_path)
+    print("Saved model!")
+
     # Generate predictions
     print("See prediction result")
     prediction = model.predict(x_test[random.randint(0, len(x_test))])
     print("predictions result:", prediction)
 
-    # Save model
-    model.save(save_path)
-    print("Saved model!")
+    # UNTUK SELANJUTNYA, DIBUAT TRY EXCEPT UNTUK SETIAP BLOCK BERBEDA
+    # SEPERTI SAAT PREDICT ATAU SAAT OLAH DATA ATAUPUN SAAT CEK AKURASI
+    # AGAR GAMPANG PINPOINT MASALAH.

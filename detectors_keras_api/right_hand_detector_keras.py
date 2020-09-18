@@ -58,14 +58,14 @@ build_model
 def create_model():
     # Define number of features, labels, and hidden
     num_features = 16
-    num_labels = 1
+    num_output = 1
     num_hidden = 5
     hidden_layers = num_features - 1
 
     model = Sequential()
     model.add(Dropout(0.2, input_shape=(num_features,)))
     model.add(Dense(num_hidden, activation='relu'))
-    model.add(Dense(num_labels, activation='sigmoid'))
+    model.add(Dense(num_output, activation='sigmoid'))
 
     model.compile(
         optimizer='SGD',

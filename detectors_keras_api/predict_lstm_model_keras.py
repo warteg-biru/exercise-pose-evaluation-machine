@@ -35,12 +35,12 @@ def predict_sequence(keypoints, type_name):
     model.summary()
 
     # Get prediction
-    return str(np.argmax(model.predict_classes(np.array([keypoints]))))
+    return "1" if model.predict(np.array([keypoints])) > 0.5 else "0"
     
 
 if __name__ == '__main__':
     # Initialize video path
-    base_path = "/home/kevin/projects/dataset-theo/Cut/sit-up/sit-up47.mp4"
+    base_path = "/home/kevin/projects/dataset-theo/optimized/push-up/push-up2645.mp4"
 
     # Keypoints 
     NOSE        = 0
@@ -71,18 +71,15 @@ if __name__ == '__main__':
     selected_keypoints = [NECK, R_SHOULDER, R_ELBOW, R_WRIST, L_SHOULDER, L_ELBOW, L_WRIST, MID_HIP, R_HIP, R_KNEE, R_ANKLE, L_HIP, L_KNEE, L_ANKLE]
 
     # Get reps keypoints
-    # kp_extractor = KeypointsExtractor()
-    # all_exercise_reps, all_exercise_x_low, all_exercise_y_low = kp_extractor.scan_video_without_normalize(base_path, selected_keypoints)
-    # scaler = make_min_max_scaler(all_exercise_reps, min(all_exercise_x_low), min(all_exercise_y_low))
-    # normalized_reps = normalize_keypoints_from_external_scaler(all_exercise_reps, scaler)
+    kp_extractor = KeypointsExtractor()
+    all_exercise_reps, all_exercise_x_low, all_exercise_y_low = kp_extractor.scan_video_without_normalize(base_path, selected_keypoints)
+    scaler = make_min_max_scaler(all_exercise_reps, min(all_exercise_x_low), min(all_exercise_y_low))
+    normalized_reps = normalize_keypoints_from_external_scaler(all_exercise_reps, scaler)
+    reshaped_normalized_reps = [np.array(frames).flatten() for frames in normalized_reps]
 
-    # Loop predictions for negative dataset
-    list_of_poses, list_of_labels = get_dataset("not-push-up") 
-
-    for pose in list_of_poses:
-        # normalized_reps = kp_extractor.scan_video(base_path, selected_keypoints)
-        reshaped_normalized_reps = [np.array(frames).flatten() for frames in pose]
-
-        # Print results
-        print("Result is " + predict_sequence(reshaped_normalized_reps, "push-up"))
-        # JAPHNE MADAFAKIN DID IT AGAIN!
+    # Print results
+    print("Result is " + predict_sequence(reshaped_normalized_reps, "push-up"))
+    # JAPHNE MADAFAKIN DID IT AGAIN!
+    # JAPHNE MADAFAKIN DID IT AGAIN!
+    # JAPHNE MADAFAKIN DID IT AGAIN!
+    # JAPHNE MADAFAKIN DID IT AGAIN!
