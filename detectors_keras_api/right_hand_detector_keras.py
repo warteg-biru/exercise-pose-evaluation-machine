@@ -84,7 +84,7 @@ def load_saved_model(model_path):
 
 class RightHandUpDetector:
     def __init__(self):
-        MODEL_PATH = 'models/right_hand_up/right_hand_up.h5'
+        MODEL_PATH = '/home/kevin/projects/exercise_pose_evaluation_machine/models/right_hand_up/right_hand_up.h5'
         self.model = load_saved_model(MODEL_PATH)
     
     '''

@@ -10,8 +10,8 @@ from db_entity import get_count, get_dataset_with_limit, insert_array_to_db
 # Define class types for each exercise  
 CLASS_TYPE = [
     "push-up",
-    "sit-up"
-    # "plank",
+    "sit-up",
+    "plank"
     # "squat",
     # "dumbell-curl",
 ]
@@ -60,6 +60,7 @@ def make_inverse_dataset(class_type):
     # Define the total amount of data to get
     total_count = 0
     count_per_class = []
+    # Total number of data in a certain class
     class_type_count = get_count(class_type)
     list_of_poses = []
 
@@ -75,17 +76,17 @@ def make_inverse_dataset(class_type):
     
     # Get inverse dataset for each class type
     for x in count_per_class:
+        # Get the number of dataset entries for each class and divide it 
+        # With the total number of inverse datasets then multiply
+        # The number of dataset entries in the target class
         limit = x["count"] / total_count * class_type_count
+
+        # Get the correct number of dataset entries per limit
         temp_list_of_poses, _ = get_dataset_with_limit(
             x["class_type"], 
             get_class_type_frame_length(class_type), 
-            limit)
-        if class_type is "sit-up" and x["class_type"] is not "sit-up":
-            list_of_poses.extend(double_array_in_array(temp_list_of_poses))
-        elif class_type is not "sit-up" and x["class_type"] is "sit-up":
-            list_of_poses.extend(halve_array_in_array(temp_list_of_poses))
-        else:
-            list_of_poses.extend(temp_list_of_poses)
+            math.floor(limit))
+        list_of_poses.extend(temp_list_of_poses)
 
         # Pop all poses and labels in list
         pop_all(temp_list_of_poses)

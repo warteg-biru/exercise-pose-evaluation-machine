@@ -45,12 +45,12 @@ class InitialPoseDetector:
     #pushup -> 3
     '''
     def get_exercise_name_from_prediction(self, prediction):
-        print(prediction)
-        res_lookup = ['plank', 'sit-up', 'dumbell-curl', 'push-up']
-        # prediction shape is (1, 4)
+        res_lookup = ['plank', 'push-up', 'sit-up', 'squat']
         exercise_index = np.argmax(prediction[0])
+        # print(prediction[0][exercise_index])
+        # import time
+        # time.sleep(2000)
         if prediction[0][exercise_index] < 0.6:
-            print(exercise_index, prediction[0][exercise_index])
             return -1
         return res_lookup[exercise_index]
        
@@ -58,7 +58,7 @@ class InitialPoseDetector:
 
 def train():
     # Initialize paths
-    base_path = '/home/kevin/projects/Exercise Starting Pose'
+    base_path = "/home/kevin/projects/initial-pose-data/train_data"
     save_path = "/home/kevin/projects/exercise_pose_evaluation_machine/models/initial_pose_model/initial_pose_model.h5"
 
     # Get dataset folders
@@ -70,7 +70,9 @@ def train():
     x = []
     y = []
     # Loop in each folder
+    class_names = []
     for class_label, class_name in enumerate(dirs):
+        class_names.append(class_name)
         class_dir = os.listdir(base_path+'/'+class_name)
         for file_name in class_dir:
             file_path = f'{base_path}/{class_name}/{file_name}'
@@ -80,7 +82,7 @@ def train():
 
             x.append(np.array(keypoints).flatten())
             y.append(class_label)
-    
+
     # One hot encoder
     y = np.array(y)
     y = y.reshape(-1, 1)
@@ -125,9 +127,9 @@ def train():
     print('Accuracy: %.2f' % (accuracy*100))
 
     # Get keypoints from image
-    img_test_path = "/home/kevin/projects/Exercise Starting Pose/Dumbell Curl/dumbellcurl1.jpg"
+    img_test_path = "/home/kevin/projects/initial-pose-data/images/pos-negs/push-up/pos/push-up47.mp4_24.jpg"
     image = cv2.imread(img_test_path)
-    list_of_pose_and_id = kp_extractor.get_keypoints_and_id_from_img(image)
+    list_of_pose_and_id = kp_extractor.get_keypoints_and_id_from_img(image)   
     keypoints = list_of_pose_and_id[0]['Keypoints']
 
     # Prepare keypoints to feed into network
@@ -141,7 +143,7 @@ def train():
     #dumbell-curl -> 2
     #pushup -> 3
     '''
-    res_lookup = ['plank', 'sit-up', 'dumbell-curl', 'push-up']
+    res_lookup = ['plank', 'push-up', 'sit-up', 'squat']
     print("Result is " + res_lookup[
         np.argmax(
             model.predict(
@@ -191,6 +193,6 @@ def test(test_file_path):
 
 
 if __name__ == '__main__':
-    test_file_path = "/home/kevin/projects/dataset-handsup-to-exercise/pushup.mp4.mp4"
-    test(test_file_path)
-    # train()
+    # test_file_path = "/home/kevin/projects/dataset-handsup-to-exercise/pushup.mp4.mp4"
+    # test(test_file_path)
+    train()

@@ -21,17 +21,41 @@ import tensorflow as tf
 from tensorflow import keras as K
 from tensorflow.keras import models
 from tensorflow.keras import layers
-from tensorflow.keras.models import Sequential
+from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.layers import LSTMCell, StackedRNNCells, RNN, Permute, Reshape, Dense, Dropout
+from datetime import datetime
 
-CLASS_TYPE = [
-    "push-up",
-    "sit-up"
-    # "plank"
-]
+def load_saved_model(model_path):
+    if os.path.isfile(model_path):
+        model = load_model(model_path)
+        return model
+    raise Exception('model does not exist')
 
-for type_name in CLASS_TYPE:
+
+def save_model_summary(summary):
+    training_logs_dir = "/home/"
+    f = open()
+
+
+
+class ExerciseEvaluator:
+    def __init__(self, type_name):
+        MODEL_PATH = '/home/kevin/projects/exercise_pose_evaluation_machine/models/lstm_model/keras/' + type_name + '/' + type_name + '_lstm_model.h5'
+        self.model = load_saved_model(MODEL_PATH)
+        self.type_name = type_name
+
+    def predict(self, data):
+        try:
+            if self.type_name is "sit-up":
+                assert data.shape == (1, 48)
+            else:
+                assert data.shape == (1, 24)
+            return "1" if self.model.predict(np.array([data])) > 0.5 else "0"
+        except BaseException as e:
+            traceback.print_exc()
+
+def train(type_name, n_hidden):
     # Initialize save path
     save_path = "/home/kevin/projects/exercise_pose_evaluation_machine/models/lstm_model/keras/" + type_name + "/" + type_name + "_lstm_model.h5"
     # Get original dataset
@@ -52,10 +76,9 @@ for type_name in CLASS_TYPE:
     _x = []
     _y = []
     for idx, data in enumerate(x):
-        if len(data) == 24:
-            data = [np.reshape(np.array(frames), (28)).tolist() for frames in data]
-            _x.append(data)
-            _y.append(y[idx])
+        data = [np.reshape(np.array(frames), (28)).tolist() for frames in data]
+        _x.append(data)
+        _y.append(y[idx])
     x = _x
     y = _y
 
@@ -67,8 +90,6 @@ for type_name in CLASS_TYPE:
     y_test = np.array(y_test)
 
     # Define training parameters
-    n_input = len(x_train[0][0])
-    n_hidden = 22
     n_classes = 1
 
     # Make LSTM Layer
@@ -97,6 +118,7 @@ for type_name in CLASS_TYPE:
 
     # Print model stats
     print(model.summary())
+    print(model.get_config())
 
     # Find accuracy
     _, accuracy = model.evaluate(x_test, y_test)
@@ -108,9 +130,30 @@ for type_name in CLASS_TYPE:
 
     # Generate predictions
     print("See prediction result")
-    prediction = model.predict(x_test[random.randint(0, len(x_test))])
+    random_int = random.randint(0, len(x_test))
+    data = x_test[random_int]
+    prediction = "1" if model.predict(np.array([data])) > 0.5 else "0"
     print("predictions result:", prediction)
+    print("expected result: ", y_test[random_int])
 
     # UNTUK SELANJUTNYA, DIBUAT TRY EXCEPT UNTUK SETIAP BLOCK BERBEDA
     # SEPERTI SAAT PREDICT ATAU SAAT OLAH DATA ATAUPUN SAAT CEK AKURASI
     # AGAR GAMPANG PINPOINT MASALAH.
+
+# Initiate function
+if __name__ == '__main__':
+    CLASS_TYPE = [
+        "push-up",
+        "sit-up",
+        "plank"
+    ]
+
+    HIDDEN_NUM = [44,22,11]
+
+    for type_name in CLASS_TYPE:
+        for hidden in HIDDEN_NUM:
+            log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/models/training_logs/"
+            date_string = datetime.now().isoformat()
+            sys.stdout= open(os.path.join(log_dir, f'{type_name}-{date_string}.txt'), 'w')
+            train(type_name, hidden)
+            sys.stdout.close()

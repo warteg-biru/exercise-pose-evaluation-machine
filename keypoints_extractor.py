@@ -1123,6 +1123,27 @@ class KeypointsExtractor:
             y_max = keypoint['y'] if keypoint['y'] > y_max else y_max
 
         return x_min, y_min, x_max, y_max
+
+        
+    '''
+    get_min_max_frames
+
+    # Get min max frames
+    @params {frames} frames
+    '''
+    def get_min_max_frames(self, frames):
+        x_min = 9999999
+        y_min = 9999999
+        x_max = 0
+        y_max = 0
+        for keypoints in frames:
+            kp_x_min, kp_y_min, kp_x_max, kp_y_max = self.get_min_max(keypoints)
+            x_min = kp_x_min if kp_x_min < x_min else x_min 
+            x_max = keypoint['x'] if keypoint['x'] > x_max else x_max
+            y_min = kp_y_min if kp_y_min < y_min else y_min
+            y_max = kp_y_max if kp_y_max > y_max else y_max
+
+        return x_min, y_min, x_max, y_max
         
     '''
     get_bounded_coordinates

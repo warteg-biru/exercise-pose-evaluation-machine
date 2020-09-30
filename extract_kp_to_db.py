@@ -84,7 +84,7 @@ if __name__ == '__main__':
     selected_keypoints = [NECK, R_SHOULDER, R_ELBOW, R_WRIST, L_SHOULDER, L_ELBOW, L_WRIST, MID_HIP, R_HIP, R_KNEE, R_ANKLE, L_HIP, L_KNEE, L_ANKLE]
 
     # Initialize dataset path
-    dataset_path = '/home/kevin/projects/dataset-theo/Cut/to-process'
+    dataset_path = '/home/kevin/projects/dataset-theo/to-insert-to-db'
 
     # Define keypoints
     kp_extractor = KeypointsExtractor()

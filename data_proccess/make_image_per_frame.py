@@ -51,8 +51,10 @@ def create_output_dir(output_base_dir, exercise, output_folder_name):
 
 
 if __name__ == '__main__':
-    source_base_dir = get_source_base_dir_arg()
-    output_base_dir = get_output_base_dir_arg()
+    source_base_dir = "/home/kevin/projects/initial-pose-data/videos/to-process"
+    output_base_dir = "/home/kevin/projects/initial-pose-data/images/raw"
+    #  source_base_dir = get_source_base_dir_arg()
+    #  output_base_dir = get_output_base_dir_arg()
 
     # loop through each exercise folder in base directory
     exercise_folders = os.listdir(source_base_dir)

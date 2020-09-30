@@ -1,6 +1,6 @@
+import numpy as np
 import urllib.parse
 from pymongo import MongoClient
-import numpy as np
 
 
 class DBEntity():

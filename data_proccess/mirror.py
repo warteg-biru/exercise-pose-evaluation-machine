@@ -1,8 +1,8 @@
 from moviepy.editor import VideoFileClip, vfx
 import os
 
-path = '/home/kevin/Videos/dataset-pushup-squats/cut/pushup'
-output_path = '/home/kevin/Videos/dataset-pushup-squats/cut-mirrored/pushup'
+path = '/home/kevin/projects/initial-pose-data/videos/processed/squat'
+output_path = '/home/kevin/projects/initial-pose-data/videos/to-process/squat'
 
 def main():
     for filename in os.listdir(path):
