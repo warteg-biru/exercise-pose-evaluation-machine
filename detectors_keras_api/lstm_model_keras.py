@@ -24,6 +24,8 @@ from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.layers import LSTMCell, StackedRNNCells, RNN, Permute, Reshape, Dense, Dropout
+from tensorflow.keras.optimizers.schedules import ExponentialDecay, PolynomialDecay
+from tensorflow.keras.optimizers import Adam
 from datetime import datetime
 
 def load_saved_model(model_path):
@@ -94,16 +96,28 @@ def train(type_name, n_hidden):
 
     # Make LSTM Layer
     # Pair of lstm cell initialization through loop
+    # use_bias          -> Adding bias vector on each layer, by default is True so this line could be deleted
+    # unit_forget_bias  -> 
     lstm_cells = [LSTMCell(
         n_hidden,
         activation='relu',
         use_bias=True,
         unit_forget_bias = 1.0
-    ) for _ in range(2)]
+    ) for _ in range(4)]
     stacked_lstm = StackedRNNCells(lstm_cells)
     lstm_layer = RNN(stacked_lstm)
 
+    learning_rate = 1e-2
+    lr_schedule = PolynomialDecay(
+        initial_learning_rate=learning_rate,
+        decay_steps=10,
+        end_learning_rate= 0.00001
+    )
+    optimizer = Adam(learning_rate = lr_schedule)
+
     # Initiate model
+    # kernel_regularizers   -> regularizing weights to avoid overfit training data on layer kernel
+    # activity_regularizer  -> regularizing weights to avoid overfit training data on layer output 
     model = Sequential()
     model.add(lstm_layer)
     model.add(Dropout(0.5))
@@ -111,10 +125,14 @@ def train(type_name, n_hidden):
             activation='sigmoid',
             kernel_regularizer=regularizers.l2(0.01),
             activity_regularizer=regularizers.l1(0.01)))
-    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.compile(loss='binary_crossentropy', optimizer=optimizer
+    , metrics=['accuracy'])
     
     # Train model
-    model.fit(x_train, y_train, epochs=25, batch_size=10, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4)
+    # shufffle = True   -> shuffle training data 
+    # validation_split  -> portion of training data used for validation split
+    # validation_data   -> external data used for validation
+    model.fit(x_train, y_train, epochs=200, batch_size=100, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4)
 
     # Print model stats
     print(model.summary())
@@ -142,6 +160,17 @@ def train(type_name, n_hidden):
 
 # Initiate function
 if __name__ == '__main__':
+    from multiprocessing import Process
+
+    def run(type_name, hidden):
+        name = f'{type_name}-{hidden}'
+        print("Starting " + name)
+        log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/models/training_logs/"
+        date_string = datetime.now().isoformat()
+        sys.stdout= open(os.path.join(log_dir, f'{name}-{date_string}.txt'), 'w')
+        train(type_name, hidden)
+        print("Exiting " + name)
+
     CLASS_TYPE = [
         "push-up",
         "sit-up",
@@ -149,11 +178,13 @@ if __name__ == '__main__':
     ]
 
     HIDDEN_NUM = [44,22,11]
+    THREADS = []
 
     for type_name in CLASS_TYPE:
         for hidden in HIDDEN_NUM:
-            log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/models/training_logs/"
-            date_string = datetime.now().isoformat()
-            sys.stdout= open(os.path.join(log_dir, f'{type_name}-{date_string}.txt'), 'w')
-            train(type_name, hidden)
-            sys.stdout.close()
+            thread = Process(target=run, args=(type_name, hidden,))
+            thread.start()
+            THREADS.append(thread)
+        for t in THREADS:
+            t.join()
+        pop_all(THREADS)
