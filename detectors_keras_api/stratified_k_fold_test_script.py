@@ -102,9 +102,11 @@ def train(type_name):
 
         # Define training parameters
         n_hidden = 0
-        if type_name == "sit-up" or type_name == "push-up":
+        if type_name == "push-up":
             n_hidden += 44
         elif type_name == "plank":
+            n_hidden += 22
+        elif type_name == "sit-up":
             n_hidden += 11
         n_classes = 1
 
