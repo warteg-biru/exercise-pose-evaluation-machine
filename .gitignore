@@ -9,4 +9,3 @@ data_preproccess/preprocessed_videos
 .vim
 .ipynb_checkpoints
 models
-k-fold-results
