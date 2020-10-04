@@ -1,2 +1,0 @@
-model_checkpoint_path: "/home/kevin/projects/exercise_pose_evaluation_machine/models/right_hand_up/right_hand_up.ckpt"
-all_model_checkpoint_paths: "/home/kevin/projects/exercise_pose_evaluation_machine/models/right_hand_up/right_hand_up.ckpt"

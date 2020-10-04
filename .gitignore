@@ -8,3 +8,4 @@ data_preproccess/preprocessed_videos
 .vscode
 .vim
 .ipynb_checkpoints
+models
