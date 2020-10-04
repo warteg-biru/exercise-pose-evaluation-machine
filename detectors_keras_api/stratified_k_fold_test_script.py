@@ -32,9 +32,9 @@ from tensorflow.keras.layers import LSTMCell, StackedRNNCells, RNN, Permute, Res
 def write_header(filename):
     if not os.path.exists('k-fold-results'):
         os.mkdir('k-fold-results')
-    f = open('k-fold-results/' + filename + ' k-fold results.csv', 'w')
+    f = open('k-fold-results/' + filename + '.csv', 'w')
     with f:
-        fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'avg']
+        fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writeheader()
 
@@ -43,13 +43,16 @@ def write_body(filename, data):
     if not os.path.exists('k-fold-results'):
         os.mkdir('k-fold-results')
     date_string = datetime.now().isoformat()
-    f = open('k-fold-results/' + filename + f' k-fold results {date_string}.csv', 'a')
+    f = open('k-fold-results/' + filename + '.csv', 'a')
     with f:
-        fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'avg']
+        fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writerow(data)
 
 def train(type_name):
+    # Make filename
+    date_string = datetime.now().isoformat()
+    filename = f'{type_name} k-fold results {date_string}'
     # Initialize save path
     save_path = "/home/kevin/projects/exercise_pose_evaluation_machine/models/lstm_model/keras/" + type_name + "/" + type_name + "_lstm_model.h5"
     # Get original dataset
@@ -77,12 +80,12 @@ def train(type_name):
     y = _y
 
     # Create file and write CSV header
-    write_header(type_name)
+    write_header(filename)
     body = {}
 
     # Initialize total accuracy variable and number of K-Fold splits
     total = 0
-    n_splits = 5
+    n_splits = 10
 
     # Initialize K Fold
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=1)
@@ -116,6 +119,15 @@ def train(type_name):
         stacked_lstm = StackedRNNCells(lstm_cells)
         lstm_layer = RNN(stacked_lstm)
 
+        # Decaying learning rate
+        learning_rate = 1e-2
+        lr_schedule = PolynomialDecay(
+            initial_learning_rate=learning_rate,
+            decay_steps=10,
+            end_learning_rate= 0.00001
+        )
+        optimizer = Adam(learning_rate = lr_schedule)
+
         # Initiate model
         model = Sequential()
         model.add(lstm_layer)
@@ -124,17 +136,12 @@ def train(type_name):
             activation='sigmoid',
             kernel_regularizer=regularizers.l2(0.01),
             activity_regularizer=regularizers.l1(0.01)))
-        model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+        model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
         
         # Train model
-        epochs = 0
-        if type_name == "sit-up":
-            epochs += 15
-        elif type_name == "push-up":
-            epochs += 24
-        elif type_name == "plank":
-            epochs += 23
-        model.fit(x_train, y_train, epochs=epochs, batch_size=10, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4)
+        epochs = 200
+        batch_size = 100
+        model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4)
 
         # Print model stats
         print(model.summary())
@@ -154,18 +161,31 @@ def train(type_name):
     # Write iterations
     body['exercise name'] = type_name
     body['avg'] = "{:.2f}".format(total/n_splits)
-    write_body(type_name, body)
+    write_body(filename, body)
 
 if __name__ == '__main__':
+    from multiprocessing import Process
+
+    def run(type_name):
+        name = f'{type_name}-{hidden}'
+        print("Starting " + type_name)
+        log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k-fold-results/training_logs/"
+        sys.stdout= open(os.path.join(log_dir, f'{type_name}-{date_string}.txt'), 'w')
+        train(type_name)
+        print("Exiting " + type_name)
+
     CLASS_TYPE = [
         "push-up",
         "sit-up",
         "plank"
     ]
 
+    THREADS = []
+
     for type_name in CLASS_TYPE:
-        log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k-fold-results/training_logs/"
-        date_string = datetime.now().isoformat()
-        sys.stdout= open(os.path.join(log_dir, f'{type_name}-{date_string}.txt'), 'w')
-        train(type_name)
-        sys.stdout.close()
+        thread = Process(target=run, args=(type_name,))
+        thread.start()
+        THREADS.append(thread)
+    for t in THREADS:
+        t.join()
+    pop_all(THREADS)
