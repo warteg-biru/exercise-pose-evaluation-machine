@@ -65,12 +65,12 @@ def get_val_acc(line):
 if __name__ == "__main__":
     # Initialize logs path
     k = 10
-    log_path = '/home/kevin/projects/exercise_pose_evaluation_machine/k-fold-results/training_logs/'
+    log_path = '/home/binus/projects/exercise-pose-evaluation-machine/k-fold-results/training_logs/'
     
     # Get all files from folder
     files = os.listdir(log_path)
     for filename in files:
-        with open(filename) as openfile:
+        with open(f'{log_path}{filename}') as openfile:
             name = os.path.splitext(filename)[0]
             
             idx = 1

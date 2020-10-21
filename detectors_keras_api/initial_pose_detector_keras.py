@@ -120,10 +120,10 @@ def train():
     model.compile(loss='categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
     
     # Train model
-    model.fit(X_train, y_train, epochs=200, batch_size=10)
+    model.fit(X_train, y_train, epochs=200, batch_size=10, shuffle = True, validation_data = (X_test, y_test), validation_split = 0.3))
 
     # Find accuracy
-    _, accuracy = model.evaluate(X_train, y_train)
+    _, accuracy = model.evaluate(X_test, y_test)
     print('Accuracy: %.2f' % (accuracy*100))
 
     # Get keypoints from image
