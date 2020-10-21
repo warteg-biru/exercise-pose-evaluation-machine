@@ -44,7 +44,7 @@ def write_header(filename):
         os.mkdir('k-fold-results')
     f = open('k-fold-results/' + filename + '.csv', 'w')
     with f:
-        fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'avg']
+        fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writeheader()
 
@@ -54,7 +54,7 @@ def write_body(filename, data):
         os.mkdir('k-fold-results')
     f = open('k-fold-results/' + filename + f'.csv', 'a')
     with f:
-        fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'avg']
+        fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writerow(data)
 
@@ -101,7 +101,7 @@ def train():
 
     # Initialize total accuracy variable and number of K-Fold splits
     total = 0
-    n_splits = 5
+    n_splits = 10
 
     # Initialize K Fold
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=1)
@@ -147,7 +147,7 @@ def train():
         model.compile(loss='sparse_categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
         
         # Train model
-        model.fit(x_train, y_train, epochs=200, batch_size=10, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.3))
+        model.fit(x_train, y_train, epochs=200, batch_size=10, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.3)
 
         # Find accuracy
         _, accuracy = model.evaluate(x_test, y_test)
