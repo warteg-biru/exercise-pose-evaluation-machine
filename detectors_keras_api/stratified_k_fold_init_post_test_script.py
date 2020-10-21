@@ -147,10 +147,10 @@ def train():
         model.compile(loss='sparse_categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
         
         # Train model
-        model.fit(x_train, y_train, epochs=200, batch_size=10)
+        model.fit(x_train, y_train, epochs=200, batch_size=10, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.3))
 
         # Find accuracy
-        _, accuracy = model.evaluate(x_train, y_train)
+        _, accuracy = model.evaluate(x_test, y_test)
         accuracy *= 100
         total += accuracy
         body['k-fold ' + str(k_fold_index)] = "{:.2f}".format(accuracy)
