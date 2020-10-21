@@ -70,7 +70,7 @@ if __name__ == "__main__":
     # Get all files from folder
     files = os.listdir(log_path)
     for filename in files:
-        with open(filename) as openfile:
+        with open(f'{log_path}{filename}') as openfile:
             name = os.path.splitext(filename)[0]
             
             idx = 1

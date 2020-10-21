@@ -3,6 +3,7 @@ import cv2
 import traceback
 import numpy as np
 import collections
+import time
 
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Dense, Dropout
@@ -14,7 +15,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 
-from keypoints_extractor import KeypointsExtractor
+from db_entity import get_initial_pose_dataset
 
 def load_saved_model(model_path):
     if os.path.isfile(model_path):
@@ -64,24 +65,14 @@ def train():
     # Get dataset folders
     dirs = os.listdir(base_path)
 
-    # Initialize keypoints extractor
-    kp_extractor = KeypointsExtractor()
-
+    exercise_name_labels = { "sit-up": 0, "plank": 1, "squat": 2, "push-up": 3, "stand": 4 }
     x = []
     y = []
-    # Loop in each folder
-    class_names = []
-    for class_label, class_name in enumerate(dirs):
-        class_names.append(class_name)
-        class_dir = os.listdir(base_path+'/'+class_name)
-        for file_name in class_dir:
-            file_path = f'{base_path}/{class_name}/{file_name}'
-            image = cv2.imread(file_path)
-            list_of_pose_and_id = kp_extractor.get_keypoints_and_id_from_img(image)
-            keypoints = list_of_pose_and_id[0]['Keypoints']
-
-            x.append(np.array(keypoints).flatten())
-            y.append(class_label)
+    dataset = get_initial_pose_dataset()
+    for exercise_name, keypoints in dataset.items():
+        for kp in keypoints:
+            x.append(kp)
+            y.append(exercise_name_labels[exercise_name])
 
     # One hot encoder
     y = np.array(y)
@@ -101,7 +92,7 @@ def train():
     # Define number of features, labels, and hidden
     num_features = 28 # 14 pairs of (x, y) keypoints
     num_hidden = 8
-    num_labels = 4
+    num_labels = 5
     
     '''
     build_model

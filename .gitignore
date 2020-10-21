@@ -9,3 +9,4 @@ data_preproccess/preprocessed_videos
 .vim
 .ipynb_checkpoints
 models
+process_results

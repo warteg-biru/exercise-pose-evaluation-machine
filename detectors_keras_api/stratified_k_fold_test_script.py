@@ -24,8 +24,10 @@ import tensorflow as tf
 from tensorflow import keras as K
 from tensorflow.keras import models
 from tensorflow.keras import layers
+from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.optimizers.schedules import PolynomialDecay
 from tensorflow.keras.layers import LSTMCell, StackedRNNCells, RNN, Permute, Reshape, Dense, Dropout
 
 # Write headers
@@ -42,7 +44,6 @@ def write_header(filename):
 def write_body(filename, data):
     if not os.path.exists('k-fold-results'):
         os.mkdir('k-fold-results')
-    date_string = datetime.now().isoformat()
     f = open('k-fold-results/' + filename + '.csv', 'a')
     with f:
         fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
@@ -169,7 +170,8 @@ if __name__ == '__main__':
     from multiprocessing import Process
 
     def run(type_name):
-        name = f'{type_name}-{hidden}'
+        name = f'{type_name}'
+        date_string = datetime.now().isoformat()
         print("Starting " + type_name)
         log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k-fold-results/training_logs/"
         sys.stdout= open(os.path.join(log_dir, f'{type_name}-{date_string}.txt'), 'w')

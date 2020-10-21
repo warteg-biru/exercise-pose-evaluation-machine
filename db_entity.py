@@ -282,3 +282,96 @@ def get_count(collection_name):
         print("Could not connect to MongoDB " , e) 
     
     return count
+
+
+def insert_initial_pose_to_db(kp_array, exercise_name):
+    # try catch for MongoDB connection
+    try: 
+        #connect to mongodb instance
+        username = urllib.parse.quote_plus('mongo') 
+        password = urllib.parse.quote_plus('mongo') 
+        conn = MongoClient('mongodb://%s:%s@127.0.0.1' % (username, password))
+
+        # connect to mongodb database and collection
+        db = conn["PoseMachine"]
+        collection = db["initial_pose"]
+        
+        # If successful print
+        print("\nConnected successfully!!!\n")
+
+        # try catch for MongoDB insert
+        try:
+            # Make new object
+            pose = {
+                "keypoints": kp_array,
+                "exercise_name": exercise_name
+            }
+            # Insert into database collection
+            rec_id1 = collection.insert_one(pose) 
+            print("Data inserted with record ids",rec_id1)
+        except Exception as e:
+            print("Failed to insert data to database, errors: ", e)
+                        
+    except Exception as e:   
+        print("Could not connect to MongoDB " , e)
+
+
+def get_initial_pose_dataset():
+    # try catch for MongoDB connection
+    try: 
+        #connect to mongodb instance
+        username = urllib.parse.quote_plus('mongo') 
+        password = urllib.parse.quote_plus('mongo') 
+        conn = MongoClient('mongodb://%s:%s@127.0.0.1' % (username, password))
+
+        # connect to mongodb database and collection
+        db = conn["PoseMachine"]
+        collection = db["initial_pose"]
+        
+        # If successful print
+        print("\nConnected successfully!!!\n")
+
+        dataset = {}
+        for x in collection.find():
+            exercise_name = x["exercise_name"]
+            keypoints = x["keypoints"]
+            if exercise_name not in dataset.keys():
+                dataset[exercise_name] = []
+            dataset[exercise_name].append(keypoints)
+
+        return dataset
+                        
+    except Exception as e:   
+        print("Could not connect to MongoDB " , e)
+
+# Keypoints with label true/false
+def insert_right_hand_up_pose_to_db(kp_array, label: bool):
+    # try catch for MongoDB connection
+    try: 
+        #connect to mongodb instance
+        username = urllib.parse.quote_plus('mongo') 
+        password = urllib.parse.quote_plus('mongo') 
+        conn = MongoClient('mongodb://%s:%s@127.0.0.1' % (username, password))
+
+        # connect to mongodb database and collection
+        db = conn["PoseMachine"]
+        collection = db["right_hand_up_pose"]
+        
+        # If successful print
+        print("\nConnected successfully!!!\n")
+
+        # try catch for MongoDB insert
+        try:
+            # Make new object
+            pose = {
+                "keypoints": kp_array,
+                "label": label
+            }
+            # Insert into database collection
+            rec_id1 = collection.insert_one(pose) 
+            print("Data inserted with record ids",rec_id1)
+        except Exception as e:
+            print("Failed to insert data to database, errors: ", e)
+                        
+    except Exception as e:   
+        print("Could not connect to MongoDB " , e)
