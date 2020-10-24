@@ -26,7 +26,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 if __name__ == '__main__':        
     # Base paths
-    base_path = "/home/kevin/projects/dataset-handsup-to-exercise/pushup.mp4.mp4"
+    base_path = "/home/kevin/projects/right-hand-up-to-exercise/VID_20201024_134437.mp4"
     kp_extractor = KeypointsExtractor()
 
     # Opening OpenCV stream

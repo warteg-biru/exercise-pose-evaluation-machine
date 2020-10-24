@@ -1,3 +1,6 @@
+import warnings
+warnings.simplefilter("ignore")
+
 import os
 import cv2
 import traceback
@@ -111,7 +114,7 @@ def train():
     model.compile(loss='categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
     
     # Train model
-    model.fit(X_train, y_train, epochs=200, batch_size=10, shuffle = True, validation_data = (X_test, y_test), validation_split = 0.3))
+    model.fit(X_train, y_train, epochs=200, batch_size=10, shuffle = True, validation_data = (X_test, y_test), validation_split = 0.3)
 
     # Find accuracy
     _, accuracy = model.evaluate(X_test, y_test)
@@ -180,10 +183,3 @@ def test(test_file_path):
                 print("Initial pose prediction result: " + str(prediction))
         except Exception as e:
             print(e)
-
-
-
-if __name__ == '__main__':
-    # test_file_path = "/home/kevin/projects/dataset-handsup-to-exercise/pushup.mp4.mp4"
-    # test(test_file_path)
-    train()

@@ -1,3 +1,6 @@
+import warnings
+warnings.simplefilter("ignore")
+
 import os
 import sys
 import cv2
@@ -71,7 +74,7 @@ def normalize_keypoints(keypoint, x_low, y_low):
                 nom_keypoint.append([kp['x'], kp['y']])
 
     except Exception as e:
-        print(str(e))
+        print(end="")
 
     # normalize data between 0 to 1
     scaler = MinMaxScaler()
@@ -115,7 +118,7 @@ def normalize_keypoints_for_plot_kps(keypoint_frames, x_low, y_low):
             # Add keypoints for the selected frame to the array
             nom_keypoint_frame.append(nom_keypoint)
     except Exception as e:
-        print(str(e))
+        print(end="")
         
     # Normalize data between 0 to 1
     scaler = MinMaxScaler(feature_range=(0,1))
@@ -169,7 +172,7 @@ def make_min_max_scaler(keypoint_frames, x_low, y_low):
             # Add keypoints for the selected frame to the array
             nom_keypoint_frame.append(nom_keypoint)
     except Exception as e:
-        print(str(e))
+        print(end="")
         
     # Normalize data between 0 to 1
     scaler = MinMaxScaler(feature_range=(0,1))
@@ -204,7 +207,7 @@ def normalize_keypoints_from_external_scaler(keypoint_frames, scaler):
             # Add keypoints for the selected frame to the array
             nom_keypoint_frame.append(nom_keypoint)
     except Exception as e:
-        print(str(e))
+        print(end="")
 
     # Define MinMax'ed keypoints for each frame
     min_max_keypoint_frame = []
@@ -348,12 +351,10 @@ class KeypointsExtractor:
                             "Keypoints": list_of_pose_temp[track_idx],
                             "ID": track.track_id
                         })
-
-
-                        
-            return list_of_pose_and_id
         except Exception as e:
-            traceback.print_exc()
+            print(end="")
+
+        return list_of_pose_and_id, datum.cvOutputData
         
 
     '''
@@ -482,9 +483,9 @@ class KeypointsExtractor:
                             "ID": track.track_id
                         })
 
-            return list_of_pose_and_id
+            return list_of_pose_and_id, datum.cvOutputData
         except Exception as e:
-            traceback.print_exc()
+            print(end="")
 
 
     '''
@@ -614,7 +615,7 @@ class KeypointsExtractor:
 
             return list_of_pose_and_id
         except Exception as e:
-            print(e)
+            print(end="")
 
     '''
     scan_image
@@ -686,7 +687,7 @@ class KeypointsExtractor:
 
             return normalized_keypoints
         except Exception as e:
-            print(e)
+            print(end="")
 
 
     '''
@@ -755,7 +756,7 @@ class KeypointsExtractor:
 
             return arr, x_low, y_low, output_image
         except Exception as e:
-            print(e)
+            print(end="")
 
 
     '''
@@ -843,9 +844,7 @@ class KeypointsExtractor:
                     normalized_keypoint = normalize_keypoints(arr, x_low, y_low)
                     list_of_pose.append(normalized_keypoint)
             except Exception as e:
-                print(e)
-                traceback.print_exc()
-                pass
+                print(end="")
 
         return list_of_pose
 
@@ -939,9 +938,7 @@ class KeypointsExtractor:
                     list_of_x_low.append(x_low)
                     list_of_y_low.append(y_low)
             except Exception as e:
-                print(e)
-                traceback.print_exc()
-                pass
+                print(end="")
 
         return list_of_pose, list_of_x_low, list_of_y_low
 
@@ -1071,7 +1068,7 @@ class KeypointsExtractor:
 
             return list_of_pose_and_id
         except Exception as e:
-            print(e)
+            print(end="")
             
 
     '''
@@ -1085,6 +1082,7 @@ class KeypointsExtractor:
         keypoints = self.scan_image(image_path)
 
         # KP ordering of body parts
+        NECK        = 1
         R_SHOULDER  = 2
         R_ELBOW     = 3
         R_WRIST     = 4
@@ -1121,7 +1119,6 @@ class KeypointsExtractor:
             x_max = keypoint['x'] if keypoint['x'] > x_max else x_max
             y_min = keypoint['y'] if keypoint['y'] < y_min else y_min
             y_max = keypoint['y'] if keypoint['y'] > y_max else y_max
-
         return x_min, y_min, x_max, y_max
 
         
@@ -1173,7 +1170,7 @@ class KeypointsExtractor:
             x_min = x_min - (x_length * 5 / 100) if x_min - (x_length * 5 / 100) >= 0   else x_min
             x_max = x_max + (x_length * 5 / 100) if x_max + (x_length * 5 / 100) <= width else x_max
             y_min = y_min - (y_length * 10 / 100) if y_min - (y_length * 10 / 100) >= 0   else y_min
-            y_max = y_max + (y_length * 10 / 100) if y_max + (y_length * 10 / 100) <= height else x_min
+            y_max = y_max + (y_length * 10 / 100) if y_max + (y_length * 10 / 100) <= height else y_max
         elif prediction == "plank":
             x_min = x_min - (x_length * 20 / 100) if x_min - (x_length * 20 / 100) >= 0  else x_min
             x_max = x_max + (x_length * 30 / 100) if x_max + (x_length * 30 / 100) <= width else x_max

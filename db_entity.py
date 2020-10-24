@@ -375,3 +375,31 @@ def insert_right_hand_up_pose_to_db(kp_array, label: bool):
                         
     except Exception as e:   
         print("Could not connect to MongoDB " , e)
+
+def get_right_hand_up_dataset():
+    # try catch for MongoDB connection
+    try: 
+        #connect to mongodb instance
+        username = urllib.parse.quote_plus('mongo') 
+        password = urllib.parse.quote_plus('mongo') 
+        conn = MongoClient('mongodb://%s:%s@127.0.0.1' % (username, password))
+
+        # connect to mongodb database and collection
+        db = conn["PoseMachine"]
+        collection = db["right_hand_up_pose"]
+        
+        # If successful print
+        print("\nConnected successfully!!!\n")
+
+        dataset = {}
+        for x in collection.find():
+            label = x["label"]
+            keypoints = x["keypoints"]
+            if label not in dataset.keys():
+                dataset[label] = []
+            dataset[label].append(keypoints)
+
+        return dataset
+                        
+    except Exception as e:   
+        print("Could not connect to MongoDB " , e)

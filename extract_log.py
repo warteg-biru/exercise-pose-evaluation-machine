@@ -3,6 +3,7 @@ import csv
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from list_manipulator import pop_all
 
 # Write headers
 def write_header(folder, filename):
@@ -62,13 +63,7 @@ def get_val_loss(line):
 def get_val_acc(line):
     return line[line.find('val_acc') + len("val_acc: "): len(line)-1]
 
-if __name__ == "__main__":
-    # Initialize logs path
-    k = 10
-    log_path = '/home/kevin/projects/exercise_pose_evaluation_machine/k-fold-results/training_logs/'
-    
-    # Get all files from folder
-    files = os.listdir(log_path)
+def extract_log_from_files(k, log_path, files):
     for filename in files:
         with open(f'{log_path}{filename}') as openfile:
             name = os.path.splitext(filename)[0]
@@ -94,3 +89,36 @@ if __name__ == "__main__":
                     x[idx] = body
                     
                 plot_log_and_save(name, new_name, x)
+
+
+def chunk_it(seq, num):
+    avg = len(seq) / float(num)
+    out = []
+    last = 0.0
+
+    while last < len(seq):
+        out.append(seq[int(last):int(last + avg)])
+        last += avg
+
+    return out
+
+
+if __name__ == "__main__":
+    from multiprocessing import Process
+
+    # Initialize logs path
+    k = 10
+    log_path = '/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/'
+    
+    # Get all files from folder
+    file_list = os.listdir(log_path)
+
+    THREADS = []
+
+    for files in chunk_it(file_list, 5):
+        thread = Process(target=extract_log_from_files, args=(k, log_path, files))
+        thread.start()
+        THREADS.append(thread)
+    for t in THREADS:
+        t.join()
+    pop_all(THREADS)

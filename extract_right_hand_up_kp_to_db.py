@@ -40,7 +40,7 @@ def create_logger():
 def run():
     # Initialize paths
     # TODO: Setup the train data in 2 folders true and false folders
-    base_path = "/home/kevin/projects/right-hand-up-pose-data/train_data"
+    base_path = "/home/kevin/projects/right_hand_up_pose_data/training_data"
 
     # Get dataset folders
     dirs = os.listdir(base_path)
@@ -64,7 +64,7 @@ def run():
             
             # record the time to extract keypoints
             kp_extract_start = time.perf_counter()
-            keypoints = kp_extractor.get_upper_body_keypoint(image)
+            keypoints = kp_extractor.get_upper_body_keypoint(file_path)
             kp_extract_end = time.perf_counter()
 
             kp_extraction_log_entry = {
