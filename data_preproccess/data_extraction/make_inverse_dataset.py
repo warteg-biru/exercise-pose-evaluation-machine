@@ -9,15 +9,14 @@ from db_entity import get_count, get_dataset_with_limit, insert_array_to_db
 
 # Define class types for each exercise  
 CLASS_TYPE = [
-    "push-up",
-    "sit-up",
-    "plank"
-    # "squat",
-    # "dumbell-curl",
+    # "push-up",
+    # "sit-up",
+    # "plank"
+    "squat"
 ]
 
 def get_class_type_frame_length(class_type):
-    return 48 if class_type == "sit-up" else 24
+    return 48 if class_type == "sit-up" or class_type == "squat" else 24
 
 def double_array_in_array(array):
     new_array = []

@@ -62,10 +62,13 @@ def run():
             # Get image dimensions for logging
             height, width, channels = image.shape
             
-            # record the time to extract keypoints
-            kp_extract_start = time.perf_counter()
-            keypoints = kp_extractor.get_upper_body_keypoint(file_path)
-            kp_extract_end = time.perf_counter()
+            try:
+                # record the time to extract keypoints
+                kp_extract_start = time.perf_counter()
+                keypoints = kp_extractor.get_upper_body_keypoint(file_path)
+                kp_extract_end = time.perf_counter()
+            except:
+                continue
 
             kp_extraction_log_entry = {
                 "image_res": f"{width}x{height}",

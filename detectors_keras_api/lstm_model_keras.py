@@ -174,7 +174,8 @@ if __name__ == '__main__':
     CLASS_TYPE = [
         "push-up",
         "sit-up",
-        "plank"
+        "plank",
+        "squat"
     ]
 
     HIDDEN_NUM = [44,22,11]
