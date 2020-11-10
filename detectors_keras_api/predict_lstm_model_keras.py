@@ -23,6 +23,7 @@ from keypoints_extractor import KeypointsExtractor
 
 from keypoints_extractor import normalize_keypoints_for_plot_kps, KeypointsExtractor, make_min_max_scaler, normalize_keypoints_from_external_scaler
 from db_entity import get_dataset
+from list_manipulator import get_exact_frames
 
 def predict_sequence(keypoints, type_name):
     # Base paths
@@ -31,16 +32,19 @@ def predict_sequence(keypoints, type_name):
     # Load model
     model = load_model(save_path)
 
-    # Summarize model
-    model.summary()
+    keypoints = get_exact_frames(keypoints, type_name)
 
+    print(f"actual result: {model.predict(np.array([keypoints]))}")
     # Get prediction
-    return "1" if model.predict(np.array([keypoints])) > 0.5 else "0"
+    return "1" if model.predict(np.array([keypoints])) > 0.8 else "0"
     
 
-if __name__ == '__main__':
+if __name__ == f'__main__':
     # Initialize video path
-    base_path = "/home/kevin/projects/dataset-theo/optimized/push-up/push-up2645.mp4"
+    # positive
+    base_path = "/home/kevin/projects/dataset-theo/optimized/sit-up/sit-up1.mp4"
+    # negative
+    # base_path = '/home/kevin/Desktop/squat-speedup.mp4'
 
     # Keypoints 
     NOSE        = 0
@@ -78,7 +82,7 @@ if __name__ == '__main__':
     reshaped_normalized_reps = [np.array(frames).flatten() for frames in normalized_reps]
 
     # Print results
-    print("Result is " + predict_sequence(reshaped_normalized_reps, "push-up"))
+    print("Result is " + predict_sequence(reshaped_normalized_reps, "sit-up"))
     # JAPHNE MADAFAKIN DID IT AGAIN!
     # JAPHNE MADAFAKIN DID IT AGAIN!
     # JAPHNE MADAFAKIN DID IT AGAIN!

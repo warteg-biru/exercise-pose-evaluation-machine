@@ -54,7 +54,8 @@ class InitialPoseDetector:
         # print(prediction[0][exercise_index])
         # import time
         # time.sleep(2000)
-        if prediction[0][exercise_index] < 0.6:
+        print(prediction[0])
+        if prediction[0][exercise_index] < 0.8:
             return -1
         return res_lookup[exercise_index]
        

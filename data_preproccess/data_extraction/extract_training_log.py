@@ -1,15 +1,23 @@
 import os
+
+import sys
+sys.path.append("/home/kevin/projects/exercise_pose_evaluation_machine")
+
 import csv
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from list_manipulator import pop_all
+from data_preproccess.data_extraction.extract_k_fold_log import chunk_it, get_loss, get_acc, get_val_loss, get_val_acc, list_dict_to_dict_list
 
 # Write headers
 def write_header(folder, filename):
-    if not os.path.exists(f'process_results/{folder}'):
-        os.mkdir(f'process_results/{folder}')
-    f = open(f'process_results/{folder}/{filename}.csv', 'w')
+    base_path = '/home/kevin/projects/exercise_pose_evaluation_machine'
+    if not os.path.exists(f'{base_path}/process_results/training'):
+        os.mkdir(f'{base_path}/process_results/training')
+    if not os.path.exists(f'{base_path}/process_results/training/{folder}'):
+        os.mkdir(f'{base_path}/process_results/training/{folder}')
+    f = open(f'{base_path}/process_results/training/{folder}/{filename}.csv', 'w')
     with f:
         fnames = ['epoch', 'loss', 'acc', 'val_loss', 'val_acc']
         writer = csv.DictWriter(f, fieldnames=fnames)    
@@ -17,29 +25,24 @@ def write_header(folder, filename):
 
 # Write headers
 def write_body(folder, filename, data):
-    if not os.path.exists(f'process_results/{folder}'):
-        os.mkdir(f'process_results/{folder}')
-    f = open(f'process_results/{folder}/{filename}.csv', 'a')
+    base_path = '/home/kevin/projects/exercise_pose_evaluation_machine'
+    if not os.path.exists(f'{base_path}/process_results/training'):
+        os.mkdir(f'{base_path}/process_results/training')
+    if not os.path.exists(f'{base_path}/process_results/training/{folder}'):
+        os.mkdir(f'{base_path}/process_results/training/{folder}')
+    f = open(f'{base_path}/process_results/training/{folder}/{filename}.csv', 'a')
     with f:
         fnames = ['epoch', 'loss', 'acc', 'val_loss', 'val_acc']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writerow(data)
-
-# Convert from list of dictionaries to dictionaries of list
-# Type conversion made specifically for this case
-def list_dict_to_dict_list(data):
-    body = {}
-    body["epoch"] = [d["epoch"] for d in data]
-    body["loss"] = [float(d["loss"]) for d in data]
-    body["acc"] = [float(d["acc"]) for d in data]
-    body["val_loss"] = [float(d["val_loss"]) for d in data]
-    body["val_acc"] = [float(d["val_acc"]) for d in data]
-    return body
         
 # Plot the data into an image
 def plot_log_and_save(folder, filename, d):
-    if not os.path.exists(f'process_results/{folder}'):
-        os.mkdir(f'process_results/{folder}')
+    base_path = '/home/kevin/projects/exercise_pose_evaluation_machine'
+    if not os.path.exists(f'{base_path}/process_results/training'):
+        os.mkdir(f'{base_path}/process_results/training')
+    if not os.path.exists(f'{base_path}/process_results/training/{folder}'):
+        os.mkdir(f'{base_path}/process_results/training/{folder}')
     data = list_dict_to_dict_list(d)
     plt.plot(data["epoch"],data["loss"], label="Training Loss")
     plt.plot(data["epoch"],data["acc"], label="Training Accuracy")
@@ -47,23 +50,10 @@ def plot_log_and_save(folder, filename, d):
     plt.plot(data["epoch"],data["val_acc"], label="Validation Accuracy")
     plt.legend(loc="upper left")
     plt.ylim(0, 1.0)
-    plt.savefig(f'process_results/{folder}/{filename}.png')
+    plt.savefig(f'{base_path}/process_results/training/{folder}/{filename}.png')
     plt.gca().cla()
 
-# Get log data
-def get_loss(line):
-    return line[line.find('loss') + len("loss: "): line.find(" - acc")]
-
-def get_acc(line):
-    return line[line.find('acc') + len("acc: "): line.find(" - val_loss")]
-
-def get_val_loss(line):
-    return line[line.find('val_loss') + len("val_loss: "): line.find(" - val_acc")]
-
-def get_val_acc(line):
-    return line[line.find('val_acc') + len("val_acc: "): len(line)-1]
-
-def extract_log_from_files(k, log_path, files):
+def extract_log_from_files(log_path, files):
     for filename in files:
         with open(f'{log_path}{filename}') as openfile:
             name = os.path.splitext(filename)[0]
@@ -80,8 +70,8 @@ def extract_log_from_files(k, log_path, files):
                     body["val_acc"] = get_val_acc(line)
                     arr_body.append(body)
 
-            for i, x in enumerate(np.array_split(arr_body, k)):
-                new_name = f'iteration-{i+1}-{name}'
+            for x in [arr_body]:
+                new_name = f'training-log-{name}'
                 write_header(name, new_name)
                 for idx, body in enumerate(x):
                     body["epoch"] = idx + 1
@@ -91,24 +81,11 @@ def extract_log_from_files(k, log_path, files):
                 plot_log_and_save(name, new_name, x)
 
 
-def chunk_it(seq, num):
-    avg = len(seq) / float(num)
-    out = []
-    last = 0.0
-
-    while last < len(seq):
-        out.append(seq[int(last):int(last + avg)])
-        last += avg
-
-    return out
-
-
 if __name__ == "__main__":
     from multiprocessing import Process
 
     # Initialize logs path
-    k = 10
-    log_path = '/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/'
+    log_path = '/home/kevin/projects/exercise_pose_evaluation_machine/models/training_logs/'
     
     # Get all files from folder
     file_list = os.listdir(log_path)
@@ -116,7 +93,7 @@ if __name__ == "__main__":
     THREADS = []
 
     for files in chunk_it(file_list, 5):
-        thread = Process(target=extract_log_from_files, args=(k, log_path, files))
+        thread = Process(target=extract_log_from_files, args=(log_path, files))
         thread.start()
         THREADS.append(thread)
     for t in THREADS:

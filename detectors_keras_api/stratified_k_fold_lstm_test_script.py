@@ -32,9 +32,9 @@ from tensorflow.keras.layers import LSTMCell, StackedRNNCells, RNN, Permute, Res
 
 # Write headers
 def write_header(filename):
-    if not os.path.exists('k-fold-results'):
-        os.mkdir('k-fold-results')
-    f = open('k-fold-results/' + filename + '.csv', 'w')
+    if not os.path.exists('k_fold_results'):
+        os.mkdir('k_fold_results')
+    f = open('k_fold_results/' + filename + '.csv', 'w')
     with f:
         fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
@@ -42,9 +42,9 @@ def write_header(filename):
 
 # Write headers
 def write_body(filename, data):
-    if not os.path.exists('k-fold-results'):
-        os.mkdir('k-fold-results')
-    f = open('k-fold-results/' + filename + '.csv', 'a')
+    if not os.path.exists('k_fold_results'):
+        os.mkdir('k_fold_results')
+    f = open('k_fold_results/' + filename + '.csv', 'a')
     with f:
         fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
@@ -107,7 +107,7 @@ def train(type_name):
             n_hidden += 44
         elif type_name == "plank":
             n_hidden += 22
-        elif type_name == "sit-up":
+        elif type_name == "sit-up" and type_name == "squat":
             n_hidden += 11
         n_classes = 1
 
@@ -173,15 +173,16 @@ if __name__ == '__main__':
         name = f'{type_name}'
         date_string = datetime.now().isoformat()
         print("Starting " + type_name)
-        log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k-fold-results/training_logs/"
+        log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/"
         sys.stdout= open(os.path.join(log_dir, f'{type_name}-{date_string}.txt'), 'w')
         train(type_name)
         print("Exiting " + type_name)
 
     CLASS_TYPE = [
-        "push-up",
-        "sit-up",
-        "plank"
+        # "push-up",
+        # "sit-up",
+        # "plank",
+        "squat"
     ]
 
     THREADS = []

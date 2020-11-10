@@ -59,15 +59,45 @@ def write_body(filename, data):
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writerow(data)
 
+
+
 def train():
     # Initialize paths
     save_path = '/home/kevin/projects/exercise_pose_evaluation_machine/models/right_hand_up/right_hand_up.h5'
     date_string = datetime.now().isoformat()
     filename = f'right hand up model k-fold results {date_string}'
     
+    # Get dataset
+    true_dataset = get_right_hand_up_dataset(True)
+    false_dataset = get_right_hand_up_dataset(False)
+
+    # Use the same amount of data for true and false
+    true_len = len(true_dataset)
+    false_len = len(false_dataset)
+    max_len = true_len if true_len > false_len else false_len
+    true_dataset = true_dataset[:max_len]
+    false_dataset = false_dataset[:max_len]
+
+    # training_size = 80/100 * max_len
+    # testing_size = 20/100 * max_len
+
+    # training_dataset = {
+    #     "true": true_dataset[:training_size],
+    #     "false": false_dataset[:training_size]
+    # }
+
+    # testing_dataset = {
+    #     "true": true_dataset[testing_size:],
+    #     "false": false_dataset[testing_size:]
+    # }
+
+    dataset = {
+        "true": true_dataset,
+        "false": false_dataset
+    }
+
     x = []
     y = []
-    dataset = get_right_hand_up_dataset()
     for label, keypoints in dataset.items():
         keypoints = [np.array(kp).flatten() for kp in keypoints]
         for kp in keypoints:
@@ -96,7 +126,7 @@ def train():
         x_train = x[train_index]
         y_train = y[train_index]
         x_test = x[test_index]
-        y_test = y[test_index]        
+        y_test = y[test_index]
         
         model = create_model()
         

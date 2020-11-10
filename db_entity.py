@@ -376,7 +376,7 @@ def insert_right_hand_up_pose_to_db(kp_array, label: bool):
     except Exception as e:   
         print("Could not connect to MongoDB " , e)
 
-def get_right_hand_up_dataset():
+def get_right_hand_up_dataset(label = None):
     # try catch for MongoDB connection
     try: 
         #connect to mongodb instance
@@ -391,15 +391,89 @@ def get_right_hand_up_dataset():
         # If successful print
         print("\nConnected successfully!!!\n")
 
-        dataset = {}
-        for x in collection.find():
-            label = x["label"]
-            keypoints = x["keypoints"]
-            if label not in dataset.keys():
-                dataset[label] = []
-            dataset[label].append(keypoints)
+        if label is not None:
+            label_str = ""
+            if label is True:
+                label_str = "true"
+            if label is False:
+                label_str = "false"
+                
+            dataset = []
+            for x in collection.find({ "label": label_str }):
+                keypoints = x["keypoints"]
+                dataset.append(keypoints)
 
-        return dataset
+            return dataset
+        else:
+            dataset = {}
+            for x in collection.find():
+                label = x["label"]
+                keypoints = x["keypoints"]
+                if label not in dataset.keys():
+                    dataset[label] = []
+                dataset[label].append(keypoints)
+
+            return dataset
+
                         
     except Exception as e:   
         print("Could not connect to MongoDB " , e)
+
+
+def connect_to_mongo():
+    try: 
+        #connect to mongodb instance
+        username = urllib.parse.quote_plus('mongo') 
+        password = urllib.parse.quote_plus('mongo') 
+        conn = MongoClient('mongodb://%s:%s@127.0.0.1' % (username, password))
+        # connect to mongodb database and collection
+        db = conn["PoseMachine"]
+        return db
+
+    except Exception as e:
+        print("Could not connect to MongoDB " , e)
+
+
+def insert_starting_pose_binary_to_db(kp_array, exercise_name, is_starting_pose):
+    db = connect_to_mongo()
+    collection = db["starting_pose_binary"]
+
+    try:
+        data = {
+            "keypoints": kp_array,
+            "exercise_name": exercise_name,
+            "is_starting_pose": is_starting_pose,
+        }
+        # Insert into database collection
+        rec_id1 = collection.insert_one(data) 
+        print("Data inserted with record id",rec_id1)
+    except Exception as e:
+        print("Failed to insert data to database, errors: ", e)
+
+
+def get_starting_pose_binary_from_db(exercise_name):
+    db = connect_to_mongo()
+    collection = db["starting_pose_binary"]
+    dataset = []
+    for x in collection.find({ "exercise_name": exercise_name }):
+        data = {
+            "keypoints": x["keypoints"],
+            "is_starting_pose": x["is_starting_pose"]
+        }
+        dataset.append(data)
+
+    return dataset
+
+# FIXME: Ini untuk coba2 dlu
+def get_starting_pose_binary_v2_from_db(exercise_name):
+    db = connect_to_mongo()
+    collection = db["starting_pose_binary_v2"]
+    dataset = []
+    for x in collection.find({ "exercise_name": exercise_name }):
+        data = {
+            "keypoints": x["keypoints"],
+            "is_starting_pose": x["is_starting_pose"]
+        }
+        dataset.append(data)
+
+    return dataset

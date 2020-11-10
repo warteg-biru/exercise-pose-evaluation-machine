@@ -241,6 +241,7 @@ class KeypointsExtractor:
     # Scan person for keypoints and ID
     def get_upper_body_keypoints_and_id_from_img(self, img):
         # KP ordering of body parts
+        NOSE        = 0
         NECK        = 1
         R_SHOULDER  = 2
         R_ELBOW     = 3
@@ -249,9 +250,13 @@ class KeypointsExtractor:
         L_ELBOW     = 6
         L_WRIST     = 7
         MID_HIP     = 8
+        R_EYE       = 15
+        L_EYE       = 16
+        R_EAR       = 17
+        L_EAR       = 18
 
         # Define bodyparts to get the selected keypoints
-        BODY_PARTS = [NECK, R_SHOULDER, R_ELBOW, R_WRIST, L_SHOULDER, L_ELBOW, L_WRIST, MID_HIP]
+        BODY_PARTS = [NOSE, R_EYE, L_EYE, R_EAR, L_EAR, NECK, R_SHOULDER, R_ELBOW, R_WRIST, L_SHOULDER, L_ELBOW, L_WRIST, MID_HIP]
 
         # Set tracker
         max_cosine_distance = 0.2
@@ -687,6 +692,7 @@ class KeypointsExtractor:
 
             return normalized_keypoints
         except Exception as e:
+            print(e)
             print(end="")
 
 
@@ -952,6 +958,7 @@ class KeypointsExtractor:
     # Scan person for keypoints and ID
     def get_upper_body_keypoints_and_id(self, img_path):
         # KP ordering of body parts
+        NOSE        = 0
         NECK        = 1
         R_SHOULDER  = 2
         R_ELBOW     = 3
@@ -960,8 +967,12 @@ class KeypointsExtractor:
         L_ELBOW     = 6
         L_WRIST     = 7
         MID_HIP     = 8
+        R_EYE       = 15
+        L_EYE       = 16
+        R_EAR       = 17
+        L_EAR       = 18
 
-        BODY_PARTS = [NECK, R_SHOULDER, R_ELBOW, R_WRIST, L_SHOULDER, L_ELBOW, L_WRIST, MID_HIP]
+        BODY_PARTS = [NOSE, R_EYE, L_EYE, R_EAR, L_EAR, NECK, R_SHOULDER, R_ELBOW, R_WRIST, L_SHOULDER, L_ELBOW, L_WRIST, MID_HIP]
 
         # Set tracker
         max_cosine_distance = 0.2
@@ -1082,6 +1093,7 @@ class KeypointsExtractor:
         keypoints = self.scan_image(image_path)
 
         # KP ordering of body parts
+        NOSE        = 0
         NECK        = 1
         R_SHOULDER  = 2
         R_ELBOW     = 3
@@ -1090,9 +1102,13 @@ class KeypointsExtractor:
         L_ELBOW     = 6
         L_WRIST     = 7
         MID_HIP     = 8
+        R_EYE       = 15
+        L_EYE       = 16
+        R_EAR       = 17
+        L_EAR       = 18
 
         # Define bodyparts to get the selected keypoints
-        BODY_PARTS = [NECK, R_SHOULDER, R_ELBOW, R_WRIST, L_SHOULDER, L_ELBOW, L_WRIST, MID_HIP]
+        BODY_PARTS = [NOSE, R_EYE, L_EYE, R_EAR, L_EAR, NECK, R_SHOULDER, R_ELBOW, R_WRIST, L_SHOULDER, L_ELBOW, L_WRIST, MID_HIP]
 
         # Define keypoints array to be returned
         new_keypoints = []
@@ -1161,21 +1177,16 @@ class KeypointsExtractor:
         height = dimensions[0]
 
         # Make padding according to exercise type
-        if prediction == "sit-up":
-            x_min = x_min - (x_length * 5 / 100) if x_min - (x_length * 5 / 100) >= 0  else x_min
-            x_max = x_max + (x_length * 5 / 100) if x_max + (x_length * 5 / 100) <= width else x_max
-            y_min = y_min - (y_length * 30 / 100) if y_min - (y_length * 30 / 100) >= 0 else y_min
-            y_max = y_max + (y_length * 5 / 100) if y_max + (y_length * 5 / 100) <= height else y_max
-        elif prediction == "push-up":
-            x_min = x_min - (x_length * 5 / 100) if x_min - (x_length * 5 / 100) >= 0   else x_min
-            x_max = x_max + (x_length * 5 / 100) if x_max + (x_length * 5 / 100) <= width else x_max
-            y_min = y_min - (y_length * 10 / 100) if y_min - (y_length * 10 / 100) >= 0   else y_min
-            y_max = y_max + (y_length * 10 / 100) if y_max + (y_length * 10 / 100) <= height else y_max
-        elif prediction == "plank":
-            x_min = x_min - (x_length * 20 / 100) if x_min - (x_length * 20 / 100) >= 0  else x_min
-            x_max = x_max + (x_length * 30 / 100) if x_max + (x_length * 30 / 100) <= width else x_max
-            y_min = y_min - (y_length * 10 / 100) if y_min - (y_length * 10 / 100) >= 0 else y_min
-            y_max = y_max + (y_length * 10 / 100) if y_max + (y_length * 10 / 100) <= height else y_max
-        
+        if prediction != "squat":
+            x_min = x_min - (x_length * 50 / 100) if x_min - (x_length * 50 / 100) >= 0  else 0
+            x_max = x_max + (x_length * 50 / 100) if x_max + (x_length * 50 / 100) <= width else width
+            y_min = y_min - y_length if y_min - y_length >= 0 else 0
+            y_max = y_max + y_length if y_max + y_length <= height else height
+        else:
+            x_min = x_min - x_length if x_min - x_length >= 0  else 0
+            x_max = x_max + x_length if x_max + x_length <= width else width
+            y_min = y_min - y_length if y_min - y_length >= 0 else 0
+            y_max = y_max + y_length if y_max + y_length <= height else height
+
         # Return bounded coordinates
         return x_min, y_min, x_max, y_max

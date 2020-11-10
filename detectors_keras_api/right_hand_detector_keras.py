@@ -1,11 +1,16 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+
 import warnings
 warnings.simplefilter("ignore")
 
-import os
 import cv2
 import sys
 import numpy as np
 import collections
+
+ROOT_DIR = "/home/kevin/projects/exercise_pose_evaluation_machine"
+sys.path.append(ROOT_DIR)
 
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Dense, Dropout
@@ -21,22 +26,30 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 
 from keypoints_extractor import KeypointsExtractor
+from db_entity import get_right_hand_up_dataset
 
 def get_dataset():
-    base_path = '/home/kevin/projects/exercise_pose_evaluation_machine/not_important_folder/right-hand-classification'
-    # Get dataset folders
-    dirs = os.listdir(base_path)
     x = []
     y = []
-    kp_extractor = KeypointsExtractor()
+
+    # Get dataset
+    true_dataset = get_right_hand_up_dataset(True)
+    false_dataset = get_right_hand_up_dataset(False)
+
+    # Use the same amount of data for true and false
+    true_len = len(true_dataset)
+    false_len = len(false_dataset)
+    max_len = true_len if true_len > false_len else false_len
+    true_dataset = true_dataset[:max_len]
+    false_dataset = false_dataset[:max_len]
+
     # Loop in each folder
-    for class_label, class_name in enumerate(dirs):
-        class_dir = os.listdir(base_path+'/'+class_name)
-        for file_name in class_dir:
-            file_path = f'{base_path}/{class_name}/{file_name}'
-            keypoints = kp_extractor.get_upper_body_keypoint(file_path)
-            x.append(np.array(keypoints).flatten())
-            y.append([class_label])
+    for keypoints in true_dataset:
+        x.append(np.array(keypoints).flatten())
+        y.append(1)
+    for keypoints in false_dataset:
+        x.append(np.array(keypoints).flatten())
+        y.append(0)
 
     # Generate Training and Validation Sets
     X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=.3)
@@ -60,10 +73,9 @@ build_model
 '''
 def create_model():
     # Define number of features, labels, and hidden
-    num_features = 16
+    num_features = 26
     num_output = 1
-    num_hidden = 5
-    hidden_layers = num_features - 1
+    num_hidden = 13
 
     model = Sequential()
     model.add(Dropout(0.2, input_shape=(num_features,)))
@@ -92,15 +104,16 @@ class RightHandUpDetector:
     
     '''
     predict
-    @param {np.array} data - 1 row matrix of upper body keypoints with shape (1, 16)
+    @param {np.array} data - 1 row matrix of upper body keypoints with shape (1, 26)
     '''
     def predict(self, data):
         try:
-            assert data.shape == (1, 16)
+            assert data.shape == (1, 26)
             prediction = self.model.predict(data)
-            # prediction < 0.35 == right hand up
-            # 0.35 >= prediction == not right hand up
-            return 1 if prediction[0][0] < 0.35 else 0
+            # print("prediction: ", prediction)
+            # prediction > threshold == right hand up
+            # threshold >= prediction == not right hand up
+            return 1 if prediction[0][0] > 0.90 else 0
         except Exception as e:
             print(e)
 
@@ -115,17 +128,19 @@ if __name__ == '__main__':
         model = load_saved_model(MODEL_PATH)
         model.summary()
 
-        single_correct_label = y_test[15]
-        single_test_data = np.array([X_test[15]])
+        print(len(X_test))
+        data_idx = 20
+        single_correct_label = y_test[data_idx]
+        single_test_data = np.array([X_test[data_idx]])
         prediction = model.predict(single_test_data)
-
+        print("prediction score is: ", prediction)
         print('model prediction is ', 1 if prediction[0][0] > 0.5 else 0)
         print('correct label should be ', single_correct_label)
     except Exception as e:
         # If no model, create new model, train, and save
+        print(f'{e}, training a new model')
         model = create_model()
         model.summary()
-        model.fit(X_train, y_train, epochs=500, batch_size=10)
+        model.fit(X_train, y_train, epochs=150, batch_size=50)
         _, accuracy = model.evaluate(X_train, y_train)
         model.save(MODEL_PATH)
-        print(e)

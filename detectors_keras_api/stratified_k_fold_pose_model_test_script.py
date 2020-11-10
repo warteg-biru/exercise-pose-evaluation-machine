@@ -58,7 +58,7 @@ def write_body(filename, data):
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writerow(data)
 
-def train(exercise_name, dataset):
+def train(exercise_name, dropout, dataset):
     # Initialize keypoints extractor
     kp_extractor = KeypointsExtractor()
 
@@ -87,7 +87,7 @@ def train(exercise_name, dataset):
     # Initialize paths
     base_path = "/home/kevin/projects/initial-pose-data/train_data"
     date_string = datetime.now().isoformat()
-    filename = f'{exercise_name} binary pose k-fold results {date_string}'
+    filename = f'{exercise_name}_{dropout}_dropout binary pose k-fold results {date_string}'
 
     # Get dataset folders
     dirs = os.listdir(base_path)
@@ -143,9 +143,14 @@ def train(exercise_name, dataset):
         optimizer = SGD(learning_rate = lr_schedule)
 
         model = Sequential()
-        model.add(Dropout(0.2, input_shape=(num_features,)))
+        if dropout == '2x0.4':
+            model.add(Dropout(float(0.4), input_shape=(num_features,)))
+        else:
+            model.add(Dropout(float(dropout), input_shape=(num_features,)))
         model.add(Dense(12, activation='relu'))
         model.add(Dense(num_hidden, activation='relu'))
+        if dropout == '2x0.4':
+            model.add(Dropout(float(0.4), input_shape=(num_features,)))
         model.add(Dense(num_labels, activation='softmax'))
         model.compile(loss='sparse_categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
         
@@ -172,25 +177,35 @@ if __name__ == '__main__':
     exercise_names = [
         "sit-up",
         "push-up",
-        "plank",
-        "squat"
+        "plank"
+        # "squat"
     ]
     # Get dataset
     data = get_initial_pose_dataset()
 
-    def run(type_name, dataset):
-        name = f'{type_name}'
+    def run(type_name, dropout, dataset):
+        name = f'{type_name}_{dropout}_dropout'
         date_string = datetime.now().isoformat()
-        print("Starting " + type_name)
+        print("Starting " + name)
         log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/"
-        sys.stdout= open(os.path.join(log_dir, f'{type_name}-binary-pose-{date_string}.txt'), 'w')
-        train(type_name, dataset)
-        print("Exiting " + type_name)
+        sys.stdout= open(os.path.join(log_dir, f'{name}-binary-pose-{date_string}.txt'), 'w')
+        train(type_name, dropout, dataset)
+        print("Exiting " + name)
 
     THREADS = []
+    dropouts = [0.2, 0.4, 0.5, 0.6]
 
     for type_name in exercise_names:
-        thread = Process(target=run, args=(type_name,data))
+        for dropout in dropouts:
+            thread = Process(target=run, args=(type_name, dropout, data))
+            thread.start()
+            THREADS.append(thread)
+        for t in THREADS:
+            t.join()
+        pop_all(THREADS)
+
+    for type_name in exercise_names:
+        thread = Process(target=run, args=(type_name, '2x0.4', data))
         thread.start()
         THREADS.append(thread)
     for t in THREADS:

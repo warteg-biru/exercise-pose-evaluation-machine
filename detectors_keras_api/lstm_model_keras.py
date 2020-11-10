@@ -39,8 +39,6 @@ def save_model_summary(summary):
     training_logs_dir = "/home/"
     f = open()
 
-
-
 class ExerciseEvaluator:
     def __init__(self, type_name):
         MODEL_PATH = '/home/kevin/projects/exercise_pose_evaluation_machine/models/lstm_model/keras/' + type_name + '/' + type_name + '_lstm_model.h5'
@@ -49,7 +47,7 @@ class ExerciseEvaluator:
 
     def predict(self, data):
         try:
-            if self.type_name is "sit-up":
+            if self.type_name is "sit-up" or self.type_name is "squat":
                 assert data.shape == (1, 48)
             else:
                 assert data.shape == (1, 24)
@@ -125,14 +123,14 @@ def train(type_name, n_hidden):
             activation='sigmoid',
             kernel_regularizer=regularizers.l2(0.01),
             activity_regularizer=regularizers.l1(0.01)))
-    model.compile(loss='binary_crossentropy', optimizer=optimizer
+    model.compile(loss='binary_crossentropy', optimizer='adam'
     , metrics=['accuracy'])
     
     # Train model
     # shufffle = True   -> shuffle training data 
     # validation_split  -> portion of training data used for validation split
     # validation_data   -> external data used for validation
-    model.fit(x_train, y_train, epochs=200, batch_size=100, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4)
+    model.fit(x_train, y_train, epochs=100, batch_size=200, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4)
 
     # Print model stats
     print(model.summary())
@@ -165,27 +163,29 @@ if __name__ == '__main__':
     def run(type_name, hidden):
         name = f'{type_name}-{hidden}'
         print("Starting " + name)
-        log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/models/training_logs/"
-        date_string = datetime.now().isoformat()
-        sys.stdout= open(os.path.join(log_dir, f'{name}-{date_string}.txt'), 'w')
+        # log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/models/training_logs/"
+        # date_string = datetime.now().isoformat()
+        # sys.stdout= open(os.path.join(log_dir, f'{name}-{date_string}.txt'), 'w')
         train(type_name, hidden)
         print("Exiting " + name)
 
     CLASS_TYPE = [
-        "push-up",
-        "sit-up",
-        "plank",
-        "squat"
+        # "push-up"
+        "sit-up"
+        # "plank",
+        # "squat"
     ]
 
-    HIDDEN_NUM = [44,22,11]
+    HIDDEN_NUM = [44]
     THREADS = []
 
     for type_name in CLASS_TYPE:
         for hidden in HIDDEN_NUM:
-            thread = Process(target=run, args=(type_name, hidden,))
-            thread.start()
-            THREADS.append(thread)
-        for t in THREADS:
-            t.join()
+            train(type_name, hidden)
+        #     thread = Process(target=run, args=(type_name, hidden,))
+        #     thread.start()
+        #     THREADS.append(thread)
+        # for t in THREADS:
+        #     t.join()
         pop_all(THREADS)
+    # test()

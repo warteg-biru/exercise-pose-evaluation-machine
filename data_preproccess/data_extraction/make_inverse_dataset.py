@@ -9,9 +9,9 @@ from db_entity import get_count, get_dataset_with_limit, insert_array_to_db
 
 # Define class types for each exercise  
 CLASS_TYPE = [
-    # "push-up",
-    # "sit-up",
-    # "plank"
+    "push-up",
+    "sit-up",
+    "plank"
     "squat"
 ]
 
@@ -96,5 +96,5 @@ def make_inverse_dataset(class_type):
 
 # Initiate function
 if __name__ == '__main__':
-    for x in CLASS_TYPE:
-        make_inverse_dataset(x)
+    # for x in CLASS_TYPE:
+    make_inverse_dataset("squat")

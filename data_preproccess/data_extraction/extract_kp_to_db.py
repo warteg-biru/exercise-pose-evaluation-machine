@@ -2,6 +2,10 @@ import os
 import numpy as np
 import urllib.parse
 from pymongo import MongoClient
+import sys
+
+ROOT_DIR = "/home/kevin/projects/exercise_pose_evaluation_machine"
+sys.path.append(ROOT_DIR)
 
 from db_entity import insert_np_array_to_db
 from keypoints_extractor import KeypointsExtractor, make_min_max_scaler, normalize_keypoints_from_external_scaler
@@ -129,6 +133,14 @@ if __name__ == '__main__':
                     if not validate_keypoints(normalized_reps, 48):
                         continue
                     class_type = 3
+                elif foldername == "squat":
+                    all_exercise_reps, all_exercise_x_low, all_exercise_y_low = kp_extractor.scan_video_without_normalize(folder + '/' + filename, selected_keypoints)
+                    scaler = make_min_max_scaler(all_exercise_reps, min(all_exercise_x_low), min(all_exercise_y_low))
+
+                    normalized_reps = normalize_keypoints_from_external_scaler(all_exercise_reps, scaler)
+                    if not validate_keypoints(normalized_reps, 48):
+                        continue
+                    class_type = 4    
 
                 # Insert keypoints to mongodb
                 insert_np_array_to_db(normalized_reps, class_type, foldername)

@@ -3,6 +3,7 @@ warnings.simplefilter("ignore")
 
 import os
 import cv2
+import random
 import numpy as np
 import collections
 from datetime import datetime
@@ -27,9 +28,24 @@ from tensorflow.keras.optimizers.schedules import PolynomialDecay
 from tensorflow.keras.layers import LSTMCell, StackedRNNCells, RNN, Permute, Reshape, Dense, Dropout
 from tensorflow.keras.optimizers import SGD
 
+
 from list_manipulator import pop_all
-from db_entity import get_initial_pose_dataset
+from db_entity import get_initial_pose_dataset, get_starting_pose_binary_v2_from_db, get_starting_pose_binary_from_db
 from keypoints_extractor import KeypointsExtractor
+
+def validate_keypoints(keypoints):
+    if len(keypoints) != 14:
+        print("Data invalid! Expected 14 keypoints, received " + str(len(keypoints)) + ".")
+        return False
+
+    for index, coordinates in enumerate(keypoints):
+        if index >= 0 or index <= 4:
+            if coordinates[0] == 0 and coordinates[1] == 0:
+                return False
+        if len(coordinates) != 2:
+            print("Data invalid! Expected 2 coordinates, received " + str(len(coordinates)) + ".")
+            return False
+    return True
 
 def load_saved_model(model_path):
     if os.path.isfile(model_path):
@@ -41,20 +57,23 @@ def load_saved_model(model_path):
 class PoseDetector:
     def __init__(self, exercise_name):
         MODEL_PATH = '/home/kevin/projects/exercise_pose_evaluation_machine/models/pose_model/' + str(exercise_name) + '/' + str(exercise_name) + '_pose_model.h5'
+        # MODEL_PATH = '/home/kevin/projects/exercise_pose_evaluation_machine/models/pose_model_v2/' + str(exercise_name) + '/' + str(exercise_name) + '_pose_model.h5'
         self.model = load_saved_model(MODEL_PATH)
 
     def predict(self, data):
         try:
             assert data.shape == (1, 28)
-            return self.model.predict(data)
+            prediction = self.model.predict(data)
+            threshold = 0.9
+            return 1 if prediction[0][0] > threshold else 0
         except Exception as e:
             print(e)
 
 def test():
-    pose_detector = PoseDetector("push-up")
+    pose_detector = PoseDetector("squat")
     kp_extractor = KeypointsExtractor()
     
-    file_path = '/home/kevin/projects/initial-pose-data/videos/push-up/push-up0.mp4'
+    file_path = '/home/kevin/projects/initial-pose-data/images/v1/pos-negs/squat/pos/mirrored-VID_20200928_134747.mp4_186.jpg'
     # Opening OpenCV stream
     stream = cv2.VideoCapture(file_path)
     while True:
@@ -66,13 +85,14 @@ def test():
 
         list_of_keypoints = kp_extractor.get_keypoints_and_id_from_img(imageToProcess)
         x = list_of_keypoints[0]
-        keypoints = np.array(x['Keypoints']).flatten()
-        prediction = pose_detector.predict(np.array([keypoints]))
-        print(np.argmax(prediction[0]))
+    keypoints = np.array(x).flatten()
+    prediction = pose_detector.predict(np.array([keypoints]))
+    print(prediction)
 
 def train(exercise_name, dataset):
     # Initialize save path
     save_path = '/home/kevin/projects/exercise_pose_evaluation_machine/models/pose_model'
+    # save_path = '/home/kevin/projects/exercise_pose_evaluation_machine/models/pose_model_v2'
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     save_path += '/' + str(exercise_name)
@@ -83,61 +103,29 @@ def train(exercise_name, dataset):
     # Get keypoint
     x = []
     y = []
-    for keypoint_name, keypoints in dataset.items():
-        if keypoint_name == exercise_name:
-            keypoints = [np.array(kp).flatten() for kp in keypoints]
-            for kp in keypoints:
-                x.append(kp)
-                y.append(0)
+    for data in dataset:
+        keypoints = np.array(data["keypoints"]).flatten()
+        x.append(keypoints)
 
-    total_pos = len(y)
-    neg_per_class = int(total_pos / 4)
+        is_starting_pose = data["is_starting_pose"]
+        label = 1 if is_starting_pose else 0
+        y.append(label)
 
-    # Data label from mongodb
-    for keypoint_name, keypoints in dataset.items():
-        if keypoint_name != exercise_name:
-            keypoints = keypoints if len(keypoints) < neg_per_class else keypoints[:neg_per_class]
-            keypoints = [np.array(kp).flatten() for kp in keypoints]
-            for kp in keypoints:
-                x.append(kp)
-                y.append(1)
-
-    # Initialize paths
-    base_path = "/home/kevin/projects/initial-pose-data/train_data"
-    date_string = datetime.now().isoformat()
-    filename = f'{exercise_name} binary pose k-fold results {date_string}'
-
-    # Get dataset folders
-    dirs = os.listdir(base_path)
-
-    # One hot encoder
-    y = np.array(y)
-    # y = y.reshape(-1, 1)
-    # one_hot = OneHotEncoder(sparse=False)
-    # y = one_hot.fit_transform(y)
-
-    # Split dataset
-    x = np.array(x)
-    y = np.array(y)
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.3)    
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.3)
+    
+    # Convert to np arrays so that we can use with TensorFlow
+    x_train = np.array(x_train).astype(np.float32)
+    x_test  = np.array(x_test).astype(np.float32)
+    y_train = np.array(y_train).astype(np.float32)
+    y_test  = np.array(y_test).astype(np.float32)
     
     # Define number of features, labels, and hidden
     num_features = 28 # 14 pairs of (x, y) keypoints
     num_hidden = 8
-    num_labels = 5
-    
-    '''
-    build_model
-
-    # Builds an ANN model for keypoint predictions
-    @params {list of labels} image prediction labels to be tested
-    @params {integer} number of features
-    @params {integer} number of labels as output
-    @params {integer} number of hidden layers
-    '''
+    num_output = 1
 
     # Decaying learning rate
-    learning_rate = 1e-2
+    learning_rate = 0.01
     lr_schedule = PolynomialDecay(
         initial_learning_rate=learning_rate,
         decay_steps=10,
@@ -146,14 +134,14 @@ def train(exercise_name, dataset):
     optimizer = SGD(learning_rate = lr_schedule)
 
     model = Sequential()
-    model.add(Dropout(0.2, input_shape=(num_features,)))
-    model.add(Dense(12, activation='relu'))
-    model.add(Dense(num_hidden, activation='relu'))
-    model.add(Dense(num_labels, activation='softmax'))
-    model.compile(loss='sparse_categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
+    model.add(Dense(60, input_shape=(num_features,)))
+    model.add(Dense(30, activation='relu'))
+    model.add(Dropout(0.2))
+    model.add(Dense(num_output, activation='sigmoid'))
+    model.compile(loss='binary_crossentropy', optimizer='sgd', metrics=['accuracy'])
     
     # Train model
-    model.fit(x_train, y_train, epochs=100, batch_size=10, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.3)
+    model.fit(x_train, y_train, epochs=250, batch_size=25, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.3)
 
     # Find accuracy
     _, accuracy = model.evaluate(x_test, y_test)
@@ -170,21 +158,29 @@ if __name__ == '__main__':
 
     # Exercise Labels
     exercise_names = [
-        "sit-up",
-        "push-up",
-        "plank",
-        "squat"
+        # "sit-up"
+        "push-up"
+        # "plank"
+        # "squat"
     ]
-    # Get dataset
-    dataset = get_initial_pose_dataset()
 
-    # Loop in each folder
+    # # Loop in each folder
     THREADS = []
 
     for exercise_name in exercise_names:
+        # Get dataset
+        dataset = get_starting_pose_binary_from_db(exercise_name)
         thread = Process(target=train, args=(exercise_name,dataset))
         thread.start()
         THREADS.append(thread)
     for t in THREADS:
         t.join()
     pop_all(THREADS)
+    
+    # variable = [[0.0, 0.0],[0.0, 0.0],[0.0, 0.0],[0.0, 0.0],[0.0, 0.0], [0.1186122208319354, 0.5149483570224415], [0.16306642523037668, 1.0], [0.414986984630671, 0.2859456585554382], [0.4152769395935169, 0.22839128934964859], [0.6964985413265004, 0.485291515118897], [0.9780199037363253, 0.5715992330523381], [0.4149430550319713, 0.37110755191467815], [0.7040218773323812, 0.5149120356887371], [1.0, 0.5146182490676815]]
+    # test(variable)
+    # dataset = get_starting_pose_binary_from_db("push-up")
+    # for x in dataset:
+    #     if not validate_keypoints(x["keypoints"]):
+    #         print("Data is false")
+    # test()
