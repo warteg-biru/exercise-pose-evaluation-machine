@@ -21,11 +21,10 @@ def transform_video(base, folder, filename):
 
 if __name__ == '__main__':
     # Get dataset folders
-    # dirs = os.listdir(base_path)
-    files = os.listdir(base_path)
+    dirs = os.listdir(base_path)
 
     # Loop in each folder
-    # for folder in dirs:
-    #     files = os.listdir(base_path + '/' + folder)
-    for filename in files:
-        transform_video(base_path, "ASD", filename)
+    for folder in dirs:
+        files = os.listdir(base_path + '/' + folder)
+        for filename in files:
+            transform_video(base_path, folder, filename)

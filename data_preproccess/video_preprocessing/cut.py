@@ -13,28 +13,52 @@ def cut_video(folder, filename, count):
     duration = clip.duration
     
     # Cut video
-    clip = clip.cutout(duration-4.5, duration)
+    clip = clip.cutout(duration-5, duration)
+    temp_clip = clip
+    temp_count = count
     
+    # Save processed clip
+    # Define directory
+    if not os.path.exists(save_base_path + '/Cut'):
+        os.mkdir(save_base_path + '/Cut')
+        print("Made Cut directory!")
+    if not os.path.exists(save_base_path + '/Cut/' + folder):
+        os.mkdir(save_base_path + '/Cut/' + folder)
+        print("Made " + folder + " directory!")
+    save_path = save_base_path + '/Cut/' + folder
+        
+    # Write video
+    temp_clip.write_videofile(save_path + '/' + folder + str(temp_count) + '.mp4')
+    temp_count+=1
+    
+    # Flip video
+    temp_clip = temp_clip.fx(vfx.mirror_x)
+
+    # Write flipped video
+    temp_clip.write_videofile(save_path + '/' + folder +  str(temp_count) + '.mp4')
+    temp_count+=1
+    
+    # Save optimized clip
     # Speedup clip
     fin = 1
     if folder == 'push-up':
         fin = 1
-    elif folder == 'sit-up':
-        fin = 2
     elif folder == 'plank':
         fin = 1
     elif folder == 'dumbell-curl':
         fin = 1
+    else:
+        fin = 2
     clip = speedx(clip=clip, final_duration=fin)
 
     # Define directory
-    if not os.path.exists(save_base_path + '/preprocessed_videos'):
-        os.mkdir(save_base_path + '/preprocessed_videos')
-        print("Made preprocess directory!")
-    if not os.path.exists(save_base_path + '/preprocessed_videos/' + folder):
-        os.mkdir(save_base_path + '/preprocessed_videos/' + folder)
+    if not os.path.exists(save_base_path + '/Optimized'):
+        os.mkdir(save_base_path + '/Optimized')
+        print("Made Optimized directory!")
+    if not os.path.exists(save_base_path + '/Optimized/' + folder):
+        os.mkdir(save_base_path + '/Optimized/' + folder)
         print("Made " + folder + " directory!")
-    save_path = save_base_path + '/preprocessed_videos/' + folder
+    save_path = save_base_path + '/Optimized/' + folder
         
     # Write video
     clip.write_videofile(save_path + '/' + folder + str(count) + '.mp4', fps=24)
