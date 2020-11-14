@@ -79,8 +79,7 @@ def get_val_acc(line):
 def extract_log_from_files(k, log_path, files):
     for filename in files:
         with open(f'{log_path}{filename}') as openfile:
-            name = os.path.splitext(filename)[0]
-            
+            name = filename.replace(':', '.')
             idx = 1
             arr_body = []
             for line in openfile:
@@ -92,7 +91,6 @@ def extract_log_from_files(k, log_path, files):
                     body["val_loss"] = get_val_loss(line)
                     body["val_acc"] = get_val_acc(line)
                     arr_body.append(body)
-
             for i, x in enumerate(np.array_split(arr_body, k)):
                 new_name = f'iteration-{i+1}-{name}'
                 write_header(name, new_name)

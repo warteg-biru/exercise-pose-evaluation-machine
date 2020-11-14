@@ -56,6 +56,7 @@ def plot_log_and_save(folder, filename, d):
 def extract_log_from_files(log_path, files):
     for filename in files:
         with open(f'{log_path}{filename}') as openfile:
+            filename = filename.replace(':', '.')
             name = os.path.splitext(filename)[0]
             
             idx = 1

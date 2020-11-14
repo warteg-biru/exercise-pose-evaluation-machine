@@ -187,8 +187,8 @@ if __name__ == '__main__':
                             x_min, y_min, x_max, y_max = kp_extractor.get_bounded_coordinates(prediction, image_to_process)
                     else:
                         # If not target
-                        if(t_end > time.time()):
-                            print(t_end - time.time())
+                        # if(t_end > time.time()):
+                        #     print(t_end - time.time())
                         continue
                     
             except Exception as e:
