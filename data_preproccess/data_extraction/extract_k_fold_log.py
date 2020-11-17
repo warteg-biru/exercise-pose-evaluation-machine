@@ -1,7 +1,7 @@
 import os
 
 import sys
-sys.path.append("/home/kevin/projects/exercise_pose_evaluation_machine")
+sys.path.append("/home/binus/projects/exercise-pose-evaluation-machine")
 
 import csv
 import numpy as np
@@ -11,7 +11,7 @@ from list_manipulator import pop_all
 
 # Write headers
 def write_header(folder, filename):
-    base_path = '/home/kevin/projects/exercise_pose_evaluation_machine'
+    base_path = '/home/binus/projects/exercise-pose-evaluation-machine'
     if not os.path.exists(f'{base_path}/process_results/k_fold'):
         os.mkdir(f'{base_path}/process_results/k_fold')
     if not os.path.exists(f'{base_path}/process_results/k_fold/{folder}'):
@@ -24,7 +24,7 @@ def write_header(folder, filename):
 
 # Write headers
 def write_body(folder, filename, data):
-    base_path = '/home/kevin/projects/exercise_pose_evaluation_machine'
+    base_path = '/home/binus/projects/exercise-pose-evaluation-machine'
     if not os.path.exists(f'{base_path}/process_results/k_fold'):
         os.mkdir(f'{base_path}/process_results/k_fold')
     if not os.path.exists(f'{base_path}/process_results/k_fold/{folder}'):
@@ -33,6 +33,20 @@ def write_body(folder, filename, data):
     with f:
         fnames = ['epoch', 'loss', 'acc', 'val_loss', 'val_acc']
         writer = csv.DictWriter(f, fieldnames=fnames)    
+        writer.writerow(data)
+
+# Write average
+def write_avg_body(folder, filename, data):
+    base_path = '/home/binus/projects/exercise-pose-evaluation-machine'
+    if not os.path.exists(f'{base_path}/process_results/k_fold'):
+        os.mkdir(f'{base_path}/process_results/k_fold')
+    if not os.path.exists(f'{base_path}/process_results/k_fold/{folder}'):
+        os.mkdir(f'{base_path}/process_results/k_fold/{folder}')
+    f = open(f'{base_path}/process_results/k_fold/{folder}/{filename}.csv', 'w')
+    with f:
+        fnames = ['name', 'epoch', 'loss', 'acc', 'val_loss', 'val_acc']
+        writer = csv.DictWriter(f, fieldnames=fnames)
+        writer.writeheader()
         writer.writerow(data)
 
 # Convert from list of dictionaries to dictionaries of list
@@ -48,7 +62,7 @@ def list_dict_to_dict_list(data):
         
 # Plot the data into an image
 def plot_log_and_save(folder, filename, d):
-    base_path = '/home/kevin/projects/exercise_pose_evaluation_machine'
+    base_path = '/home/binus/projects/exercise-pose-evaluation-machine'
     if not os.path.exists(f'{base_path}/process_results/k_fold'):
         os.mkdir(f'{base_path}/process_results/k_fold')
     if not os.path.exists(f'{base_path}/process_results/k_fold/{folder}'):
@@ -91,16 +105,35 @@ def extract_log_from_files(k, log_path, files):
                     body["val_loss"] = get_val_loss(line)
                     body["val_acc"] = get_val_acc(line)
                     arr_body.append(body)
-            for i, x in enumerate(np.array_split(arr_body, k)):
-                new_name = f'iteration-{i+1}-{name}'
-                write_header(name, new_name)
-                for idx, body in enumerate(x):
-                    body["epoch"] = idx + 1
-                    write_body(name, new_name, body)
-                    x[idx] = body
-                    
-                plot_log_and_save(name, new_name, x)
 
+            try:
+                if len(arr_body) < 1:
+                    raise Exception("Log cannot be empty")
+
+                final_result = []
+                for i, x in enumerate(np.array_split(arr_body, k)):
+                    new_name = f'iteration-{i+1}-{name}'
+                    write_header(name, new_name)
+                    last_row = len(x)
+                    for idx, body in enumerate(x):
+                        body["epoch"] = idx + 1
+                        write_body(name, new_name, body)
+                        x[idx] = body
+                        if last_row == idx + 1:
+                            final_result.append(body)
+                    plot_log_and_save(name, new_name, x)
+
+                new_body = {}
+                new_body["name"] = name
+                new_body["epoch"] = final_result[0]["epoch"]
+                new_body["loss"] = sum([float(body["loss"]) for body in final_result]) / k
+                new_body["acc"] = sum([float(body["acc"]) for body in final_result]) / k
+                new_body["val_loss"] = sum([float(body["val_loss"]) for body in final_result]) / k
+                new_body["val_acc"] = sum([float(body["val_acc"]) for body in final_result]) / k
+                new_name = f'average-{name}'
+                write_avg_body(name, new_name, new_body)
+            except Exception as ex:
+                print(f'Cannot process log {name}: {str(ex)}')
 
 def chunk_it(seq, num):
     avg = len(seq) / float(num)
@@ -119,14 +152,14 @@ if __name__ == "__main__":
 
     # Initialize logs path
     k = 10
-    log_path = '/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/'
+    log_path = '/home/binus/projects/exercise-pose-evaluation-machine/k_fold_results/training_logs/'
     
     # Get all files from folder
     file_list = os.listdir(log_path)
 
     THREADS = []
 
-    for files in chunk_it(file_list, 5):
+    for files in chunk_it(file_list, 3):
         thread = Process(target=extract_log_from_files, args=(k, log_path, files))
         thread.start()
         THREADS.append(thread)

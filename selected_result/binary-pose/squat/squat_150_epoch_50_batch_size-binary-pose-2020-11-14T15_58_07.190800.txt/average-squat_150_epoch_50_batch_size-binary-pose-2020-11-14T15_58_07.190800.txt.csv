@@ -1,0 +1,2 @@
+name,epoch,loss,acc,val_loss,val_acc
+squat_150_epoch_50_batch_size-binary-pose-2020-11-14T15_58_07.190800.txt,150,0.02712,0.9913299999999999,0.02497,0.9929399999999999

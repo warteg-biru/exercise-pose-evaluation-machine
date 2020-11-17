@@ -1,0 +1,2 @@
+name,epoch,loss,acc,val_loss,val_acc
+plank-binary-pose-2020-10-24T17_10_33.504557.txt,100,0.07692,0.97524,0.013979999999999998,1.0

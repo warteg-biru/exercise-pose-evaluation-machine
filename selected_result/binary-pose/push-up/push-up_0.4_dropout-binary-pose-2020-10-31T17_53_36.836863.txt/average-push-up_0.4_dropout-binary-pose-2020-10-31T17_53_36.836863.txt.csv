@@ -1,0 +1,2 @@
+name,epoch,loss,acc,val_loss,val_acc
+push-up_0.4_dropout-binary-pose-2020-10-31T17_53_36.836863.txt,100,0.23773,0.89946,0.10130000000000002,0.96578

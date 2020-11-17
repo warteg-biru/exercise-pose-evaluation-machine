@@ -1,0 +1,2 @@
+name,epoch,loss,acc,val_loss,val_acc
+sit-up_200_epoch_100_batch_size_2x30-binary-pose-2020-11-14T13_59_06.901613.txt,200,0.00421,0.99917,0.0036,0.9993000000000001

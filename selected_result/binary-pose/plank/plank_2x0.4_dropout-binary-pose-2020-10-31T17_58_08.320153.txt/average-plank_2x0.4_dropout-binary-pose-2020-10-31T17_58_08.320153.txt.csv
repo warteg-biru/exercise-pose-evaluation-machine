@@ -1,0 +1,2 @@
+name,epoch,loss,acc,val_loss,val_acc
+plank_2x0.4_dropout-binary-pose-2020-10-31T17_58_08.320153.txt,100,0.28111,0.8943299999999998,0.0859,0.99545

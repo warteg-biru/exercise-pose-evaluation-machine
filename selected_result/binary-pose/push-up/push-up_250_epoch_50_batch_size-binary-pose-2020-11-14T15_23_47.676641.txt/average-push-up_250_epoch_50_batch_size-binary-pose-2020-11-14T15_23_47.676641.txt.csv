@@ -1,0 +1,2 @@
+name,epoch,loss,acc,val_loss,val_acc
+push-up_250_epoch_50_batch_size-binary-pose-2020-11-14T15_23_47.676641.txt,250,0.04975,0.9852200000000002,0.30757999999999996,0.9297700000000001
