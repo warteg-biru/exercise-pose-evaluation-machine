@@ -42,9 +42,9 @@ from keypoints_extractor import KeypointsExtractor
 def write_header(filename):
     if not os.path.exists('k-fold-results'):
         os.mkdir('k-fold-results')
-    f = open('k-fold-results/' + filename + '.csv', 'w')
+    f = open(f'k-fold-results/{filename}.csv', 'w')
     with f:
-        fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
+        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writeheader()
 
@@ -52,29 +52,18 @@ def write_header(filename):
 def write_body(filename, data):
     if not os.path.exists('k-fold-results'):
         os.mkdir('k-fold-results')
-    f = open('k-fold-results/' + filename + f'.csv', 'a')
+    f = open(f'k-fold-results/{filename}.csv', 'a')
     with f:
-        fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
+        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writerow(data)
 
-def train():
+def train(filename, epoch, batch_size, dropout, double):
     # Initialize paths
-    base_path = "/home/kevin/projects/initial-pose-data/train_data"
-    save_path = "/home/kevin/projects/exercise_pose_evaluation_machine/models/initial_pose_model/initial_pose_model.h5"
-    date_string = datetime.now().isoformat()
-    filename = f'initial pose model k-fold results {date_string}'
-
-    # Get dataset folders
-    dirs = os.listdir(base_path)
-
-    # Initialize keypoints extractor
-    kp_extractor = KeypointsExtractor()
-
-    x = []
-    y = []
+    date_string = datetime.now().isoformat().replace(':', '.')
+    filename = f'{filename} k-fold results {date_string}'
     
-    # get data from mongodb
+    # Get data from mongodb
     exercise_name_labels = { "sit-up": 0, "plank": 1, "squat": 2, "push-up": 3, "stand": 4 }
     x = []
     y = []
@@ -83,21 +72,18 @@ def train():
     for exercise_name, keypoints in dataset.items():
         keypoints = [np.array(kp).flatten() for kp in keypoints]
         for kp in keypoints:
-            # print(kp.shape)
-            # import time
-            # time.sleep(20)
             x.append(kp)
             y.append(exercise_name_labels[exercise_name])
 
     # One hot encoder
     y = np.array(y)
-    # y = y.reshape(-1, 1)
-    # one_hot = OneHotEncoder(sparse=False)
-    # y = one_hot.fit_transform(y)
 
     # Create file and write CSV header
     write_header(filename)
     body = {}
+    body['epoch'] = epoch
+    body['batch_size'] = batch_size
+    body['dropout'] = dropout
 
     # Initialize total accuracy variable and number of K-Fold splits
     total = 0
@@ -117,7 +103,6 @@ def train():
         
         # Define number of features, labels, and hidden
         num_features = 28 # 14 pairs of (x, y) keypoints
-        num_hidden = 8
         num_labels = 5
         
         '''
@@ -130,24 +115,26 @@ def train():
         @params {integer} number of hidden layers
         '''
 
-        # Decaying learning rate
-        learning_rate = 1e-2
-        lr_schedule = PolynomialDecay(
-            initial_learning_rate=learning_rate,
-            decay_steps=10,
-            end_learning_rate= 0.00001
-        )
-        optimizer = SGD(learning_rate = lr_schedule)
+        # # Decaying learning rate
+        # learning_rate = 1e-2
+        # lr_schedule = PolynomialDecay(
+        #     initial_learning_rate=learning_rate,
+        #     decay_steps=10,
+        #     end_learning_rate= 0.00001
+        # )
+        # optimizer = SGD(learning_rate = lr_schedule)
 
         model = Sequential()
-        model.add(Dropout(0.2, input_shape=(num_features,)))
-        model.add(Dense(12, activation='relu'))
-        model.add(Dense(num_hidden, activation='relu'))
+        model.add(Dense(60, input_shape=(num_features,)))
+        model.add(Dense(30, activation='relu'))
+        if double:
+            model.add(Dense(30, activation='relu'))
+        model.add(Dropout(dropout))
         model.add(Dense(num_labels, activation='softmax'))
         model.compile(loss='sparse_categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
         
         # Train model
-        model.fit(x_train, y_train, epochs=200, batch_size=10, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.3)
+        model.fit(x_train, y_train, epochs=epoch, batch_size=batch_size, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.3)
 
         # Find accuracy
         _, accuracy = model.evaluate(x_test, y_test)
@@ -163,8 +150,34 @@ def train():
     write_body(filename, body)
 
 if __name__ == '__main__':
-    log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k-fold-results/training_logs/"
-    date_string = datetime.now().isoformat()
-    sys.stdout= open(os.path.join(log_dir, f'{"intital starting pose"}-{date_string}.txt'), 'w')
-    train()
-    sys.stdout.close()
+    from multiprocessing import Process
+
+    def run(epoch, batch_size, dropout, double):
+        name = f'initial_pose_detector_{epoch}_epoch_{batch_size}_batch_size_{dropout}_dropout'
+        if double:
+            name += '_2x30'
+        date_string = datetime.now().isoformat().replace(':', '.')
+        print("Starting " + name)
+        log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/"
+        sys.stdout= open(os.path.join(log_dir, f'{name}-{date_string}.txt'), 'w')
+        train(name, epoch, batch_size, dropout, double)
+        print("Exiting " + name)
+
+    THREADS = []
+    epochs = [100, 150, 200, 250]
+    batch_sizes = [10, 25, 50, 100]
+    dropouts = [0.1, 0.2, 0.3]
+
+    for epoch in epochs:
+        for batch_size in batch_sizes:
+            for dropout in dropouts:
+                thread = Process(target=run, args=(epoch, batch_size, dropout, False))
+                thread.start()
+                THREADS.append(thread)
+
+                thread = Process(target=run, args=(epoch, batch_size, dropout, True))
+                thread.start()
+                THREADS.append(thread)
+            for t in THREADS:
+                t.join()
+            pop_all(THREADS)

@@ -181,11 +181,9 @@ if __name__ == '__main__':
 
     for type_name in CLASS_TYPE:
         for hidden in HIDDEN_NUM:
-            train(type_name, hidden)
-        #     thread = Process(target=run, args=(type_name, hidden,))
-        #     thread.start()
-        #     THREADS.append(thread)
-        # for t in THREADS:
-        #     t.join()
+            thread = Process(target=run, args=(type_name, hidden,))
+            thread.start()
+            THREADS.append(thread)
+        for t in THREADS:
+            t.join()
         pop_all(THREADS)
-    # test()

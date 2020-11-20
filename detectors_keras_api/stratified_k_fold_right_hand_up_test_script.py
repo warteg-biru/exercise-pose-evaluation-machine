@@ -45,7 +45,7 @@ def write_header(filename):
         os.mkdir('k_fold_results')
     f = open('k_fold_results/' + filename + '.csv', 'w')
     with f:
-        fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
+        fnames = ['exercise name', 'epoch', 'batch_size', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writeheader()
 
@@ -55,17 +55,16 @@ def write_body(filename, data):
         os.mkdir('k_fold_results')
     f = open('k_fold_results/' + filename + f'.csv', 'a')
     with f:
-        fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
+        fnames = ['exercise name', 'epoch', 'batch_size', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writerow(data)
 
 
 
-def train():
+def train(filename, epochs, batch_size, double):
     # Initialize paths
-    save_path = '/home/kevin/projects/exercise_pose_evaluation_machine/models/right_hand_up/right_hand_up.h5'
-    date_string = datetime.now().isoformat()
-    filename = f'right hand up model k-fold results {date_string}'
+    date_string = datetime.now().isoformat().replace(':', '.')
+    filename = f'{filename} k-fold results {date_string}'
     
     # Get dataset
     true_dataset = get_right_hand_up_dataset(True)
@@ -77,19 +76,6 @@ def train():
     max_len = true_len if true_len > false_len else false_len
     true_dataset = true_dataset[:max_len]
     false_dataset = false_dataset[:max_len]
-
-    # training_size = 80/100 * max_len
-    # testing_size = 20/100 * max_len
-
-    # training_dataset = {
-    #     "true": true_dataset[:training_size],
-    #     "false": false_dataset[:training_size]
-    # }
-
-    # testing_dataset = {
-    #     "true": true_dataset[testing_size:],
-    #     "false": false_dataset[testing_size:]
-    # }
 
     dataset = {
         "true": true_dataset,
@@ -111,6 +97,8 @@ def train():
     # Create file and write CSV header
     write_header(filename)
     body = {}
+    body['epoch'] = epoch
+    body['batch_size'] = batch_size
 
     # Initialize total accuracy variable and number of K-Fold splits
     total = 0
@@ -128,10 +116,8 @@ def train():
         x_test = x[test_index]
         y_test = y[test_index]
         
-        model = create_model()
-        
-        model.fit(x_train, y_train, epochs=25, batch_size=10, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.3)
-        _, accuracy = model.evaluate(x_train, y_train)
+        model = create_model(double)
+        model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.3)
 
         # Find accuracy
         _, accuracy = model.evaluate(x_test, y_test)
@@ -149,8 +135,38 @@ def train():
     write_body(filename, body)
 
 if __name__ == '__main__':
-    log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/"
-    date_string = datetime.now().isoformat()
-    sys.stdout= open(os.path.join(log_dir, f'{"right hand up"}-{date_string}.txt'), 'w')
-    train()
-    sys.stdout.close()
+    from multiprocessing import Process
+
+    def run(epoch, batch_size, double):
+        name = f'right_hand_up_{epoch}_epoch_{batch_size}_batch_size'
+        if double:
+            name += '_2x30'
+        date_string = datetime.now().isoformat().replace(':', '.')
+        print("Starting " + name)
+        log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/"
+        sys.stdout= open(os.path.join(log_dir, f'{name}-{date_string}.txt'), 'w')
+        train(name, epoch, batch_size, double)
+        print("Exiting " + name)
+
+    THREADS = []
+    epochs = [100, 150, 200, 250]
+    batch_sizes = [10, 25, 50, 100]
+
+    for epoch in epochs:
+        # Train 60x30
+        for batch_size in batch_sizes:
+            thread = Process(target=run, args=(epoch, batch_size, False))
+            thread.start()
+            THREADS.append(thread)
+        for t in THREADS:
+            t.join()
+        pop_all(THREADS)
+
+        # Train 60x30x30
+        for batch_size in batch_sizes:
+            thread = Process(target=run, args=(epoch, batch_size, True))
+            thread.start()
+            THREADS.append(thread)
+        for t in THREADS:
+            t.join()
+        pop_all(THREADS)

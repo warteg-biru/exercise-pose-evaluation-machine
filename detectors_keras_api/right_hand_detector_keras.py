@@ -71,15 +71,17 @@ build_model
 @params {integer} number of labels
 @params {integer} number of hidden layers
 '''
-def create_model():
+def create_model(double):
     # Define number of features, labels, and hidden
     num_features = 26
     num_output = 1
-    num_hidden = 13
 
     model = Sequential()
-    model.add(Dropout(0.2, input_shape=(num_features,)))
-    model.add(Dense(num_hidden, activation='relu'))
+    model.add(Dense(60, input_shape=(num_features,)))
+    model.add(Dense(30, activation='relu'))
+    if double:
+        model.add(Dense(30, activation='relu'))
+    model.add(Dropout(0.2))
     model.add(Dense(num_output, activation='sigmoid'))
 
     model.compile(
@@ -139,7 +141,7 @@ if __name__ == '__main__':
     except Exception as e:
         # If no model, create new model, train, and save
         print(f'{e}, training a new model')
-        model = create_model()
+        model = create_model(True)
         model.summary()
         model.fit(X_train, y_train, epochs=150, batch_size=50)
         _, accuracy = model.evaluate(X_train, y_train)

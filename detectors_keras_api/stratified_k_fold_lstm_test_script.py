@@ -36,7 +36,7 @@ def write_header(filename):
         os.mkdir('k_fold_results')
     f = open('k_fold_results/' + filename + '.csv', 'w')
     with f:
-        fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
+        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'lstm_layer', 'n_hidden', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writeheader()
 
@@ -46,16 +46,15 @@ def write_body(filename, data):
         os.mkdir('k_fold_results')
     f = open('k_fold_results/' + filename + '.csv', 'a')
     with f:
-        fnames = ['exercise name', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
+        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'lstm_layer', 'n_hidden', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writerow(data)
 
-def train(type_name):
+def train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size):
     # Make filename
-    date_string = datetime.now().isoformat()
-    filename = f'{type_name} k-fold results {date_string}'
-    # Initialize save path
-    save_path = "/home/kevin/projects/exercise_pose_evaluation_machine/models/lstm_model/keras/" + type_name + "/" + type_name + "_lstm_model.h5"
+    date_string = datetime.now().isoformat().replace(':', '.')
+    filename = f'{filename} k-fold results {date_string}'
+    
     # Get original dataset
     x, y = get_dataset(type_name)
     # Fill original class type with the label 1
@@ -83,6 +82,11 @@ def train(type_name):
     # Create file and write CSV header
     write_header(filename)
     body = {}
+    body['n_hidden'] = n_hidden
+    body['lstm_layer'] = lstm_layer
+    body['dropout'] = dropout
+    body['epoch'] = epoch
+    body['batch_size'] = batch_size
 
     # Initialize total accuracy variable and number of K-Fold splits
     total = 0
@@ -102,14 +106,7 @@ def train(type_name):
         y_test = y[test_index]
 
         # Define training parameters
-        n_hidden = 0
-        if type_name == "push-up":
-            n_hidden += 44
-        elif type_name == "plank":
-            n_hidden += 22
-        elif type_name == "sit-up" and type_name == "squat":
-            n_hidden += 11
-        n_classes = 1
+        n_output = 1
 
         # Make LSTM Layer
         # Pair of lstm cell initialization through loop
@@ -118,9 +115,8 @@ def train(type_name):
             activation='relu',
             use_bias=True,
             unit_forget_bias = 1.0
-        ) for _ in range(2)]
+        ) for _ in range(lstm_layer)]
         stacked_lstm = StackedRNNCells(lstm_cells)
-        lstm_layer = RNN(stacked_lstm)
 
         # Decaying learning rate
         learning_rate = 1e-2
@@ -133,17 +129,15 @@ def train(type_name):
 
         # Initiate model
         model = Sequential()
-        model.add(lstm_layer)
-        model.add(Dropout(0.5))
-        model.add(Dense(n_classes, 
+        model.add(RNN(stacked_lstm))
+        model.add(Dropout(dropout))
+        model.add(Dense(n_output, 
             activation='sigmoid',
             kernel_regularizer=regularizers.l2(0.01),
             activity_regularizer=regularizers.l1(0.01)))
         model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
         
         # Train model
-        epochs = 200
-        batch_size = 100
         model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4)
 
         # Print model stats
@@ -169,28 +163,38 @@ def train(type_name):
 if __name__ == '__main__':
     from multiprocessing import Process
 
-    def run(type_name):
-        name = f'{type_name}'
-        date_string = datetime.now().isoformat()
-        print("Starting " + type_name)
+    def run(type_name, n_hidden, lstm_layer, dropout, epoch, batch_size):
+        filename = f'{type_name}_hidden_{n_hidden}_layers_{lstm_layer}_dropout_{dropout}_epoch_{epoch}_batch_size_{batch_size}'
+        date_string = datetime.now().isoformat().replace(':', '.')
+        print("Starting " + name)
         log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/"
-        sys.stdout= open(os.path.join(log_dir, f'{type_name}-{date_string}.txt'), 'w')
-        train(type_name)
-        print("Exiting " + type_name)
+        sys.stdout= open(os.path.join(log_dir, f'{filename}-{date_string}.txt'), 'w')
+        train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size)
+        print("Exiting " + name)
 
     CLASS_TYPE = [
-        # "push-up",
-        # "sit-up",
-        # "plank",
+        "push-up",
+        "sit-up",
+        "plank",
         "squat"
     ]
 
     THREADS = []
+    hidden = [11, 22, 44]
+    lstm_layers = [2,3,4]
+    dropouts = [0.3, 0.4, 0.5, 0.6]
+    epochs = [200, 250, 300]
+    batch_sizes = [100, 150, 200]
 
-    for type_name in CLASS_TYPE:
-        thread = Process(target=run, args=(type_name,))
-        thread.start()
-        THREADS.append(thread)
-    for t in THREADS:
-        t.join()
-    pop_all(THREADS)
+    for type_name in exercise_names:
+        for n_hidden in hidden:
+            for lstm_layer in lstm_layers:
+                for dropout in dropouts:
+                    for epoch in epochs:
+                        for batch_size in batch_sizes:
+                            thread = Process(target=run, args=(type_name, n_hidden, lstm_layer, dropout, epoch, batch_size))
+                            thread.start()
+                            THREADS.append(thread)
+                        for t in THREADS:
+                            t.join()
+                        pop_all(THREADS)
