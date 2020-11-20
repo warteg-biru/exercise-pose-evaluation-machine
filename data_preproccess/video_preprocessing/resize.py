@@ -1,8 +1,8 @@
 import os
 
 # Define base path for the dataset
-base_path = "/home/kevin/Videos/exercise-raw-dataset/2020-08-21"
-save_base_path = '/home/kevin/Videos/exercise-raw-dataset/2020-08-21'
+base_path = "/mnt/c/Users/agustinus.theodorus/Videos/Dataset"
+save_base_path = '/mnt/c/Users/agustinus.theodorus/Videos'
 
 def transform_video(base, folder, filename):
     # Check if dir exists

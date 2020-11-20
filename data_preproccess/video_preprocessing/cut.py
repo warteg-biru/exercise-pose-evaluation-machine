@@ -3,8 +3,8 @@ from moviepy.editor import *
 from moviepy.video.fx.speedx import speedx
 
 # Define base path for the dataset
-base_path = 'Videos/Saves'
-save_base_path = 'Videos'
+base_path = "/mnt/c/Users/agustinus.theodorus/Documents/Bandicut/Uncut"
+save_base_path = '/mnt/c/Users/agustinus.theodorus/Documents/Bandicut'
 
 def cut_video(folder, filename, count):
     # Get clip duration
@@ -81,6 +81,6 @@ if __name__ == '__main__':
     # Loop in each folder
     for folder in dirs:
         files = os.listdir(base_path + '/' + folder)
-        count = 0
+        count = 7000
         for filename in files:
             count = cut_video(folder, filename, count)
