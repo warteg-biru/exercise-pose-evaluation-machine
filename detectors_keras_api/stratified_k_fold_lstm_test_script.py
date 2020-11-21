@@ -1,17 +1,19 @@
-import os
 import csv
 import time
 import random
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
-from tensorflow.keras import regularizers
 from datetime import datetime
+from tensorflow.keras import regularizers
+
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import sys
 sys.path.append('/home/kevin/projects/exercise_pose_evaluation_machine/')
 
-import collections
+import time
 import random
 import numpy as np
+import collections
 from numpy import array
 import matplotlib.pyplot as plt
 from db_entity import get_dataset
@@ -36,7 +38,7 @@ def write_header(filename):
         os.mkdir('k_fold_results')
     f = open('k_fold_results/' + filename + '.csv', 'w')
     with f:
-        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'lstm_layer', 'n_hidden', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
+        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'lstm_layer', 'n_hidden', 'seconds_to_finish', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writeheader()
 
@@ -46,7 +48,7 @@ def write_body(filename, data):
         os.mkdir('k_fold_results')
     f = open('k_fold_results/' + filename + '.csv', 'a')
     with f:
-        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'lstm_layer', 'n_hidden', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
+        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'lstm_layer', 'n_hidden', 'seconds_to_finish', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writerow(data)
 
@@ -91,6 +93,7 @@ def train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size)
     # Initialize total accuracy variable and number of K-Fold splits
     total = 0
     n_splits = 10
+    t_start = time.time()
 
     # Initialize K Fold
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=1)
@@ -138,7 +141,7 @@ def train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size)
         model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
         
         # Train model
-        model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4)
+        model.fit(x_train, y_train, epochs=epoch, batch_size=batch_size, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4)
 
         # Print model stats
         print(model.summary())
@@ -156,6 +159,7 @@ def train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size)
         # AGAR GAMPANG PINPOINT MASALAH.
 
     # Write iterations
+    body['seconds_to_finish'] = float(time.time() - t_start)
     body['exercise name'] = type_name
     body['avg'] = "{:.2f}".format(total/n_splits)
     write_body(filename, body)
@@ -175,7 +179,7 @@ if __name__ == '__main__':
                 for dropout in dropouts:
                     for epoch in epochs:
                         for batch_size in batch_sizes:
-                            filename = f'{type_name}_hidden_{n_hidden}_layers_{lstm_layer}_dropout_{dropout}_epoch_{epoch}_batch_size_{batch_size}'
+                            filename = f'lstm_{type_name}_hidden_{n_hidden}_layers_{lstm_layer}_dropout_{dropout}_epoch_{epoch}_batch_size_{batch_size}'
                             date_string = datetime.now().isoformat().replace(':', '.')
                             print("Starting " + filename)
                             log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/"
@@ -183,7 +187,7 @@ if __name__ == '__main__':
                             train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size)
                             print("Exiting " + filename)
 
-    CLASS_TYPE = [
+    exercise_names = [
         "push-up",
         "sit-up",
         "plank",
@@ -193,7 +197,7 @@ if __name__ == '__main__':
     THREADS = []
 
     for type_name in exercise_names:
-        thread = Process(target=run, args=(type_name, n_hidden, lstm_layer, dropout, epoch, batch_size))
+        thread = Process(target=run, args=(type_name,))
         thread.start()
         THREADS.append(thread)
     for t in THREADS:
