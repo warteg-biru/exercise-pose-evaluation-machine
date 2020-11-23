@@ -20,14 +20,11 @@ import random
 import numpy as np
 from numpy import array
 import matplotlib.pyplot as plt
-from db_entity import get_right_hand_up_dataset
-from keypoints_extractor import pop_all
 
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedKFold
 
 import tensorflow as tf
-from db_entity import get_initial_pose_dataset
 from tensorflow import keras as K
 from tensorflow.keras import models
 from tensorflow.keras import layers
@@ -37,8 +34,10 @@ from tensorflow.keras.optimizers.schedules import PolynomialDecay
 from tensorflow.keras.layers import LSTMCell, StackedRNNCells, RNN, Permute, Reshape, Dense, Dropout
 from tensorflow.keras.optimizers import SGD
 
-from keypoints_extractor import KeypointsExtractor
-from right_hand_detector_keras import get_dataset, create_model
+from db_entity import get_right_hand_up_dataset
+from right_hand_detector_keras import create_model
+from keypoints_extractor import pop_all, KeypointsExtractor
+
 # Write headers
 def write_header(filename):
     if not os.path.exists('k_fold_results'):
@@ -59,40 +58,10 @@ def write_body(filename, data):
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writerow(data)
 
-
-
-def train(filename, epochs, batch_size, double):
+def train(filename, epochs, batch_size, double, x, y):
     # Initialize paths
     date_string = datetime.now().isoformat().replace(':', '.')
     filename = f'{filename} k-fold results {date_string}'
-    
-    # Get dataset
-    true_dataset = get_right_hand_up_dataset(True)
-    false_dataset = get_right_hand_up_dataset(False)
-
-    # Use the same amount of data for true and false
-    true_len = len(true_dataset)
-    false_len = len(false_dataset)
-    max_len = true_len if true_len > false_len else false_len
-    true_dataset = true_dataset[:max_len]
-    false_dataset = false_dataset[:max_len]
-
-    dataset = {
-        "true": true_dataset,
-        "false": false_dataset
-    }
-
-    x = []
-    y = []
-    for label, keypoints in dataset.items():
-        keypoints = [np.array(kp).flatten() for kp in keypoints]
-        for kp in keypoints:
-            x.append(kp)
-            if label == 'true':
-                y.append(1)
-            else:
-                y.append(0)
-
 
     # Create file and write CSV header
     write_header(filename)
@@ -134,10 +103,39 @@ def train(filename, epochs, batch_size, double):
     body['avg'] = "{:.2f}".format(total/n_splits)
     write_body(filename, body)
 
+def get_dataset():
+    # Get dataset
+    true_dataset = get_right_hand_up_dataset(True)
+    false_dataset = get_right_hand_up_dataset(False)
+
+    # Use the same amount of data for true and false
+    true_len = len(true_dataset)
+    false_len = len(false_dataset)
+    max_len = true_len if true_len > false_len else false_len
+    true_dataset = true_dataset[:max_len]
+    false_dataset = false_dataset[:max_len]
+
+    dataset = {
+        "true": true_dataset,
+        "false": false_dataset
+    }
+
+    x = []
+    y = []
+    for label, keypoints in dataset.items():
+        keypoints = [np.array(kp).flatten() for kp in keypoints]
+        for kp in keypoints:
+            x.append(kp)
+            if label == 'true':
+                y.append(1)
+            else:
+                y.append(0)
+    return x, y
+
 if __name__ == '__main__':
     from multiprocessing import Process
 
-    def run(epoch, batch_size, double):
+    def run(epoch, batch_size, double, x, y):
         name = f'right_hand_up_{epoch}_epoch_{batch_size}_batch_size'
         if double:
             name += '_2x30'
@@ -145,17 +143,18 @@ if __name__ == '__main__':
         print("Starting " + name)
         log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/"
         sys.stdout= open(os.path.join(log_dir, f'{name}-{date_string}.txt'), 'w')
-        train(name, epoch, batch_size, double)
+        train(name, epoch, batch_size, double, x, y)
         print("Exiting " + name)
 
     THREADS = []
     epochs = [100, 150, 200, 250]
     batch_sizes = [10, 25, 50, 100]
+    x, y = get_dataset()
 
     for epoch in epochs:
         # Train 60x30
         for batch_size in batch_sizes:
-            thread = Process(target=run, args=(epoch, batch_size, False))
+            thread = Process(target=run, args=(epoch, batch_size, False, x, y,))
             thread.start()
             THREADS.append(thread)
         for t in THREADS:
@@ -164,7 +163,7 @@ if __name__ == '__main__':
 
         # Train 60x30x30
         for batch_size in batch_sizes:
-            thread = Process(target=run, args=(epoch, batch_size, True))
+            thread = Process(target=run, args=(epoch, batch_size, True, x, y,))
             thread.start()
             THREADS.append(thread)
         for t in THREADS:

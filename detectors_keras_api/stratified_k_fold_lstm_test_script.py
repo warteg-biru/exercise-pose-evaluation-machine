@@ -52,34 +52,10 @@ def write_body(filename, data):
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writerow(data)
 
-def train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size):
+def train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size, x, y):
     # Make filename
     date_string = datetime.now().isoformat().replace(':', '.')
     filename = f'{filename} k-fold results {date_string}'
-    
-    # Get original dataset
-    x, y = get_dataset(type_name)
-    # Fill original class type with the label 1
-    y = [1 for label in y]
-
-    # Get negative dataset
-    neg_x, neg_y = get_dataset("not-" + type_name)
-    
-    # Fill original class type with the label 1
-    neg_y = [0 for label in neg_y]
-    x.extend(neg_x)
-    y.extend(neg_y)
-
-    # Flatten X coodinates and filter
-    x = np.array(x)
-    _x = []
-    _y = []
-    for idx, data in enumerate(x):
-        data = [np.reshape(np.array(frames), (28)).tolist() for frames in data]
-        _x.append(data)
-        _y.append(y[idx])
-    x = _x
-    y = _y
 
     # Create file and write CSV header
     write_header(filename)
@@ -164,10 +140,36 @@ def train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size)
     body['avg'] = "{:.2f}".format(total/n_splits)
     write_body(filename, body)
 
+def get_dataset_by_type(type_name):
+    # Get original dataset
+    x, y = get_dataset(type_name)
+    # Fill original class type with the label 1
+    y = [1 for label in y]
+
+    # Get negative dataset
+    neg_x, neg_y = get_dataset("not-" + type_name)
+    
+    # Fill original class type with the label 1
+    neg_y = [0 for label in neg_y]
+    x.extend(neg_x)
+    y.extend(neg_y)
+
+    # Flatten X coodinates and filter
+    x = np.array(x)
+    _x = []
+    _y = []
+    for idx, data in enumerate(x):
+        data = [np.reshape(np.array(frames), (28)).tolist() for frames in data]
+        _x.append(data)
+        _y.append(y[idx])
+    x = _x
+    y = _y
+    return x, y
+
 if __name__ == '__main__':
     from multiprocessing import Process
 
-    def run(type_name):
+    def run(type_name, x, y):
         hidden = [11, 22, 44]
         lstm_layers = [2,3,4]
         dropouts = [0.3, 0.4, 0.5, 0.6]
@@ -184,7 +186,7 @@ if __name__ == '__main__':
                             print("Starting " + filename)
                             log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/"
                             sys.stdout= open(os.path.join(log_dir, f'{filename}-{date_string}.txt'), 'w')
-                            train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size)
+                            train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size, x, y)
                             print("Exiting " + filename)
 
     exercise_names = [
@@ -197,7 +199,8 @@ if __name__ == '__main__':
     THREADS = []
 
     for type_name in exercise_names:
-        thread = Process(target=run, args=(type_name,))
+        x, y = get_dataset_by_type(type_name)
+        thread = Process(target=run, args=(type_name, x, y,))
         thread.start()
         THREADS.append(thread)
     for t in THREADS:

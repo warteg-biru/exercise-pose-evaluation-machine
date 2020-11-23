@@ -20,7 +20,6 @@ import random
 import numpy as np
 from numpy import array
 import matplotlib.pyplot as plt
-from db_entity import get_dataset
 from keypoints_extractor import pop_all
 
 from sklearn.metrics import accuracy_score
@@ -58,25 +57,10 @@ def write_body(filename, data):
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writerow(data)
 
-def train(filename, epoch, batch_size, dropout, double):
+def train(filename, epoch, batch_size, dropout, double, x, y):
     # Initialize paths
     date_string = datetime.now().isoformat().replace(':', '.')
     filename = f'{filename} k-fold results {date_string}'
-    
-    # Get data from mongodb
-    exercise_name_labels = { "sit-up": 0, "plank": 1, "squat": 2, "push-up": 3, "stand": 4 }
-    x = []
-    y = []
-    dataset = get_initial_pose_dataset()
-    
-    for exercise_name, keypoints in dataset.items():
-        keypoints = [np.array(kp).flatten() for kp in keypoints]
-        for kp in keypoints:
-            x.append(kp)
-            y.append(exercise_name_labels[exercise_name])
-
-    # One hot encoder
-    y = np.array(y)
 
     # Create file and write CSV header
     write_header(filename)
@@ -114,16 +98,6 @@ def train(filename, epoch, batch_size, dropout, double):
         @params {integer} number of labels as output
         @params {integer} number of hidden layers
         '''
-
-        # # Decaying learning rate
-        # learning_rate = 1e-2
-        # lr_schedule = PolynomialDecay(
-        #     initial_learning_rate=learning_rate,
-        #     decay_steps=10,
-        #     end_learning_rate= 0.00001
-        # )
-        # optimizer = SGD(learning_rate = lr_schedule)
-
         model = Sequential()
         model.add(Dense(60, input_shape=(num_features,)))
         model.add(Dense(30, activation='relu'))
@@ -149,10 +123,25 @@ def train(filename, epoch, batch_size, dropout, double):
     body['avg'] = "{:.2f}".format(total/n_splits)
     write_body(filename, body)
 
+def get_dataset():    
+    # Get data from mongodb
+    exercise_name_labels = { "sit-up": 0, "plank": 1, "squat": 2, "push-up": 3, "stand": 4 }
+    x = []
+    y = []
+    dataset = get_initial_pose_dataset()
+    
+    for exercise_name, keypoints in dataset.items():
+        keypoints = [np.array(kp).flatten() for kp in keypoints]
+        for kp in keypoints:
+            x.append(kp)
+            y.append(exercise_name_labels[exercise_name])
+    y = np.array(y)
+    return x, y
+
 if __name__ == '__main__':
     from multiprocessing import Process
 
-    def run(epoch, batch_size, dropout, double):
+    def run(epoch, batch_size, dropout, double, x, y):
         name = f'initial_pose_detector_{epoch}_epoch_{batch_size}_batch_size_{dropout}_dropout'
         if double:
             name += '_2x30'
@@ -160,7 +149,7 @@ if __name__ == '__main__':
         print("Starting " + name)
         log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/"
         sys.stdout= open(os.path.join(log_dir, f'{name}-{date_string}.txt'), 'w')
-        train(name, epoch, batch_size, dropout, double)
+        train(name, epoch, batch_size, dropout, double, x, y)
         print("Exiting " + name)
 
     THREADS = []
@@ -168,14 +157,16 @@ if __name__ == '__main__':
     batch_sizes = [10, 25, 50, 100]
     dropouts = [0.1, 0.2, 0.3]
 
+    x, y = get_dataset()
+
     for epoch in epochs:
         for batch_size in batch_sizes:
             for dropout in dropouts:
-                thread = Process(target=run, args=(epoch, batch_size, dropout, False))
+                thread = Process(target=run, args=(epoch, batch_size, dropout, False, x, y,))
                 thread.start()
                 THREADS.append(thread)
 
-                thread = Process(target=run, args=(epoch, batch_size, dropout, True))
+                thread = Process(target=run, args=(epoch, batch_size, dropout, True, x, y,))
                 thread.start()
                 THREADS.append(thread)
             for t in THREADS:
