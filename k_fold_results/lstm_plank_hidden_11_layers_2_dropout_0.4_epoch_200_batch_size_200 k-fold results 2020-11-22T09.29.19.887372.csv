@@ -1,0 +1,2 @@
+exercise name,epoch,batch_size,dropout,lstm_layer,n_hidden,seconds_to_finish,k-fold 1,k-fold 2,k-fold 3,k-fold 4,k-fold 5,k-fold 6,k-fold 7,k-fold 8,k-fold 9,k-fold 10,avg
+plank,200,200,0.4,2,11,4090.3186781406403,93.50,99.84,90.74,98.38,98.46,94.79,93.57,97.15,97.48,97.80,96.17

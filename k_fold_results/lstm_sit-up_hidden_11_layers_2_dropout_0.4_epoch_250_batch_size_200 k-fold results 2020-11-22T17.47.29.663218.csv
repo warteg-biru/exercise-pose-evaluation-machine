@@ -1,0 +1,2 @@
+exercise name,epoch,batch_size,dropout,lstm_layer,n_hidden,seconds_to_finish,k-fold 1,k-fold 2,k-fold 3,k-fold 4,k-fold 5,k-fold 6,k-fold 7,k-fold 8,k-fold 9,k-fold 10,avg
+sit-up,250,200,0.4,2,11,5777.570787906647,99.73,96.63,100.00,99.33,97.98,99.73,56.76,88.09,58.05,99.86,89.62
