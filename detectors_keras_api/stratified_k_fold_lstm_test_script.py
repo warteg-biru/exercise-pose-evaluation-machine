@@ -175,24 +175,22 @@ if __name__ == '__main__':
     from multiprocessing import Process
 
     def run(type_name, x, y):
-        hidden = [44, 22, 11]
         lstm_layers = [2,3,4]
         dropouts = [0.3, 0.4, 0.5, 0.6]
         epochs = [200, 250, 300]
         batch_sizes = [100, 150, 200]
 
-        for n_hidden in hidden:
-            for lstm_layer in lstm_layers:
-                for dropout in dropouts:
-                    for epoch in epochs:
-                        for batch_size in batch_sizes:
-                            filename = f'lstm_{type_name}_hidden_{n_hidden}_layers_{lstm_layer}_dropout_{dropout}_epoch_{epoch}_batch_size_{batch_size}'
-                            date_string = datetime.now().isoformat().replace(':', '.')
-                            print("Starting " + filename)
-                            log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/"
-                            sys.stdout= open(os.path.join(log_dir, f'{filename}-{date_string}.txt'), 'w')
-                            train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size, x, y)
-                            print("Exiting " + filename)
+        for lstm_layer in lstm_layers:
+            for dropout in dropouts:
+                for epoch in epochs:
+                    for batch_size in batch_sizes:
+                        filename = f'lstm_{type_name}_hidden_{n_hidden}_layers_{lstm_layer}_dropout_{dropout}_epoch_{epoch}_batch_size_{batch_size}'
+                        date_string = datetime.now().isoformat().replace(':', '.')
+                        print("Starting " + filename)
+                        log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/"
+                        sys.stdout= open(os.path.join(log_dir, f'{filename}-{date_string}.txt'), 'w')
+                        train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size, x, y)
+                        print("Exiting " + filename)
 
     exercise_names = [
         "push-up",
@@ -202,12 +200,14 @@ if __name__ == '__main__':
     ]
 
     THREADS = []
+    hidden = [44, 22, 11]
 
     for type_name in exercise_names:
         x, y = get_dataset_by_type(type_name)
-        thread = Process(target=run, args=(type_name, x, y,))
-        thread.start()
-        THREADS.append(thread)
-    for t in THREADS:
-        t.join()
-    pop_all(THREADS)
+        for n_hidden in hidden:
+            thread = Process(target=run, args=(type_name, x, y,))
+            thread.start()
+            THREADS.append(thread)
+        for t in THREADS:
+            t.join()
+        pop_all(THREADS)
