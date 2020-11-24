@@ -1,3 +1,4 @@
+import gc
 import csv
 import time
 import random
@@ -31,6 +32,10 @@ from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.optimizers.schedules import PolynomialDecay
 from tensorflow.keras.layers import LSTMCell, StackedRNNCells, RNN, Permute, Reshape, Dense, Dropout
+
+class ForceGarbageCollection(tf.keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        gc.collect()
 
 # Write headers
 def write_header(filename):
@@ -117,7 +122,7 @@ def train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size,
         model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
         
         # Train model
-        model.fit(x_train, y_train, epochs=epoch, batch_size=batch_size, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4)
+        model.fit(x_train, y_train, epochs=epoch, batch_size=batch_size, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4, callbacks=[ForceGarbageCollection()])
 
         # Print model stats
         print(model.summary())
