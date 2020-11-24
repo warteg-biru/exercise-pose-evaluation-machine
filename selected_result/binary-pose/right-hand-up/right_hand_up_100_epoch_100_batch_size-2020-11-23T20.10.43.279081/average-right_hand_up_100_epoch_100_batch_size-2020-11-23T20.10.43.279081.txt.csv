@@ -1,0 +1,2 @@
+name,epoch,loss,acc,val_loss,val_acc
+right_hand_up_100_epoch_100_batch_size-2020-11-23T20.10.43.279081.txt,100,0.06071,0.9787199999999998,0.05534,0.97977

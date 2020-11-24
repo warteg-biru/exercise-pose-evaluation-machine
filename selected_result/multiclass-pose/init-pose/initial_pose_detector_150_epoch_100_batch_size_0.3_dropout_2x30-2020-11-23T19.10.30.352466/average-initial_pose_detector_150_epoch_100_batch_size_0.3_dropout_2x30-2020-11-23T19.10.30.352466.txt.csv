@@ -1,0 +1,2 @@
+name,epoch,loss,acc,val_loss,val_acc
+initial_pose_detector_150_epoch_100_batch_size_0.3_dropout_2x30-2020-11-23T19.10.30.352466.txt,150,0.05659000000000001,0.98851,0.01556,0.9993000000000001
