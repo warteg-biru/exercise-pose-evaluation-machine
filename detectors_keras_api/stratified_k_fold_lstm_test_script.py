@@ -170,7 +170,7 @@ if __name__ == '__main__':
     from multiprocessing import Process
 
     def run(type_name, x, y):
-        hidden = [11, 22, 44]
+        hidden = [44, 22, 11]
         lstm_layers = [2,3,4]
         dropouts = [0.3, 0.4, 0.5, 0.6]
         epochs = [200, 250, 300]
