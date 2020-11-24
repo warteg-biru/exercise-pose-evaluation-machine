@@ -1,0 +1,2 @@
+exercise name,epoch,batch_size,k-fold 1,k-fold 2,k-fold 3,k-fold 4,k-fold 5,k-fold 6,k-fold 7,k-fold 8,k-fold 9,k-fold 10,avg
+right hand up,250,100,98.91,99.24,99.48,99.29,99.24,99.10,99.10,98.96,98.77,99.05,99.12

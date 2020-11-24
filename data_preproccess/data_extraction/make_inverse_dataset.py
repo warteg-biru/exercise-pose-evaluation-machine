@@ -97,4 +97,4 @@ def make_inverse_dataset(class_type):
 # Initiate function
 if __name__ == '__main__':
     # for x in CLASS_TYPE:
-    make_inverse_dataset("squat")
+    make_inverse_dataset("sit-up")
