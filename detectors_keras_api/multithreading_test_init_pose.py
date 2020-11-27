@@ -1,14 +1,18 @@
-import os
+import cv2
 import csv
 import time
-import cv2
 import traceback
+
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+
+import warnings
+warnings.simplefilter("ignore")
 
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 from tensorflow.keras import regularizers
 from datetime import datetime
 
@@ -146,11 +150,9 @@ if __name__ == '__main__':
         if double:
             name += '_2x30'
         date_string = datetime.now().isoformat().replace(':', '.')
-        print("Starting " + name)
         log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/multithreading_test/training_logs/"
         sys.stdout= open(os.path.join(log_dir, f'{name}-{date_string}.txt'), 'w')
         train(name, epoch, batch_size, dropout, double, x, y)
-        print("Exiting " + name)
 
     THREADS = []
     epochs = [250]
