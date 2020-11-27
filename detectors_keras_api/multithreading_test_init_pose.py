@@ -47,7 +47,7 @@ def write_header(filename):
         os.mkdir('multithreading_test')
     f = open(f'multithreading_test/{filename}.csv', 'w')
     with f:
-        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
+        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'seconds_to_finish', 'k-fold 1', 'k-fold 1 time', 'k-fold 2', 'k-fold 2 time', 'k-fold 3', 'k-fold 3 time', 'k-fold 4', 'k-fold 4 time', 'k-fold 5', 'k-fold 5 time', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writeheader()
 
@@ -57,7 +57,17 @@ def write_body(filename, data):
         os.mkdir('multithreading_test')
     f = open(f'multithreading_test/{filename}.csv', 'a')
     with f:
-        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
+        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'seconds_to_finish', 'k-fold 1', 'k-fold 1 time', 'k-fold 2', 'k-fold 2 time', 'k-fold 3', 'k-fold 3 time', 'k-fold 4', 'k-fold 4 time', 'k-fold 5', 'k-fold 5 time', 'avg']
+        writer = csv.DictWriter(f, fieldnames=fnames)    
+        writer.writerow(data)
+
+# Write time
+def write_time(filename, data):
+    if not os.path.exists('multithreading_test'):
+        os.mkdir('multithreading_test')
+    f = open('multithreading_test/' + filename + '.csv', 'a')
+    with f:
+        fnames = ['exercise_name', 'thread_type', 'time_start', 'time_end', 'seconds_to_finish']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writerow(data)
 
@@ -83,6 +93,7 @@ def train(filename, epoch, batch_size, dropout, double, x, y):
 
     x = np.array(x)
     y = np.array(y)
+    t_start = time.time()
     for train_index, test_index in skf.split(x, y):
         x_train = x[train_index]
         y_train = y[train_index]
@@ -112,17 +123,20 @@ def train(filename, epoch, batch_size, dropout, double, x, y):
         model.compile(loss='sparse_categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
         
         # Train model
+        fit_start = time.time()
         model.fit(x_train, y_train, epochs=epoch, batch_size=batch_size, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.3)
 
         # Find accuracy
         _, accuracy = model.evaluate(x_test, y_test)
         accuracy *= 100
         total += accuracy
-        body['k-fold ' + str(k_fold_index)] = "{:.2f}".format(accuracy)
+        body[f'k-fold {k_fold_index}'] = "{:.2f}".format(accuracy)
+        body[f'k-fold {k_fold_index} time'] = float(time.time() - fit_start)
         print('Accuracy: %.2f' % (accuracy))
         k_fold_index += 1
 
     # Write iterations
+    body['seconds_to_finish'] = float(time.time() - t_start)
     body['exercise name'] = "initial pose detector"
     body['avg'] = "{:.2f}".format(total/n_splits)
     write_body(filename, body)
@@ -145,8 +159,8 @@ def get_dataset():
 if __name__ == '__main__':
     from multiprocessing import Process
 
-    def run(epoch, batch_size, dropout, double, x, y):
-        name = f'initial_pose_detector_{epoch}_epoch_{batch_size}_batch_size_{dropout}_dropout'
+    def run(thread_type, epoch, batch_size, dropout, double, x, y):
+        name = f'{thread_type}_initial_pose_detector_{epoch}_epoch_{batch_size}_batch_size_{dropout}_dropout'
         if double:
             name += '_2x30'
         date_string = datetime.now().isoformat().replace(':', '.')
@@ -161,16 +175,16 @@ if __name__ == '__main__':
 
     x, y = get_dataset()
 
-    test_start = time.time()
     print("Starting Multithreading Countdown...")
+    test_start = time.time()
     for epoch in epochs:
         for dropout in dropouts:
             for batch_size in batch_sizes:
-                thread = Process(target=run, args=(epoch, batch_size, dropout, False, x, y,))
+                thread = Process(target=run, args=("multi", epoch, batch_size, dropout, False, x, y,))
                 thread.start()
                 THREADS.append(thread)
 
-                thread = Process(target=run, args=(epoch, batch_size, dropout, True, x, y,))
+                thread = Process(target=run, args=("multi", epoch, batch_size, dropout, True, x, y,))
                 thread.start()
                 THREADS.append(thread)
             for t in THREADS:
@@ -182,17 +196,31 @@ if __name__ == '__main__':
     print(f"Multithreading End Time (seconds): {float(test_end)}")
     print(f"\nMultithreading Interval Time (seconds): {float(test_end - test_start)}")
     print("==========================================\n\n\n")
+
+    body['exercise_name'] = "initial pose detector"
+    body['thread_type'] = "multithreaded"
+    body['time_start'] = f"{float(test_start)}"
+    body['time_end'] = f"{float(test_end)}"
+    body['seconds_to_finish'] = f"{float(test_end - test_start)}"
+    write_time("multithreaded_init_pose_time", body)
     
     print("\nStarting Singlethreaded Countdown...")
     test_start = time.time()
     for epoch in epochs:
         for dropout in dropouts:
             for batch_size in batch_sizes:
-                run(epoch, batch_size, dropout, False, x, y)
-                run(epoch, batch_size, dropout, True, x, y)
+                run("single", epoch, batch_size, dropout, False, x, y)
+                run("single", epoch, batch_size, dropout, True, x, y)
     test_end = time.time()
     print("\n\n\n==========================================")
     print(f"Singlethreaded Start Time (seconds): {float(test_start)}")
     print(f"Singlethreaded End Time (seconds): {float(test_end)}")
     print(f"\nSinglethreaded Interval Time (seconds): {float(test_end - test_start)}")
     print("==========================================\n\n\n")
+
+    body['exercise_name'] = "initial pose detector"
+    body['thread_type'] = "singlethreaded"
+    body['time_start'] = f"{float(test_start)}"
+    body['time_end'] = f"{float(test_end)}"
+    body['seconds_to_finish'] = f"{float(test_end - test_start)}"
+    write_time("singlethreaded_init_pose_time", body)

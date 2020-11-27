@@ -46,7 +46,7 @@ def write_header(filename):
         os.mkdir('multithreading_test')
     f = open('multithreading_test/' + filename + '.csv', 'w')
     with f:
-        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'lstm_layer', 'n_hidden', 'seconds_to_finish', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
+        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'lstm_layer', 'n_hidden', 'seconds_to_finish', 'k-fold 1', 'k-fold 1 time', 'k-fold 2', 'k-fold 2 time', 'k-fold 3', 'k-fold 3 time', 'k-fold 4', 'k-fold 4 time', 'k-fold 5', 'k-fold 5 time', 'avg']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writeheader()
 
@@ -56,7 +56,17 @@ def write_body(filename, data):
         os.mkdir('multithreading_test')
     f = open('multithreading_test/' + filename + '.csv', 'a')
     with f:
-        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'lstm_layer', 'n_hidden', 'seconds_to_finish', 'k-fold 1', 'k-fold 2', 'k-fold 3', 'k-fold 4', 'k-fold 5', 'k-fold 6', 'k-fold 7', 'k-fold 8', 'k-fold 9', 'k-fold 10', 'avg']
+        fnames = ['exercise name', 'epoch', 'batch_size', 'dropout', 'lstm_layer', 'n_hidden', 'seconds_to_finish', 'k-fold 1', 'k-fold 1 time', 'k-fold 2', 'k-fold 2 time', 'k-fold 3', 'k-fold 3 time', 'k-fold 4', 'k-fold 4 time', 'k-fold 5', 'k-fold 5 time', 'avg']
+        writer = csv.DictWriter(f, fieldnames=fnames)    
+        writer.writerow(data)
+
+# Write time
+def write_time(filename, data):
+    if not os.path.exists('multithreading_test'):
+        os.mkdir('multithreading_test')
+    f = open('multithreading_test/' + filename + '.csv', 'a')
+    with f:
+        fnames = ['exercise_name', 'thread_type', 'time_start', 'time_end', 'seconds_to_finish']
         writer = csv.DictWriter(f, fieldnames=fnames)    
         writer.writerow(data)
 
@@ -77,7 +87,6 @@ def train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size,
     # Initialize total accuracy variable and number of K-Fold splits
     total = 0
     n_splits = 5
-    t_start = time.time()
 
     # Initialize K Fold
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=1)
@@ -85,6 +94,7 @@ def train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size,
 
     x = np.array(x)
     y = np.array(y)
+    t_start = time.time()
     for train_index, test_index in skf.split(x, y):
         # Initialize training sets
         x_train = x[train_index]
@@ -122,13 +132,11 @@ def train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size,
             activation='sigmoid',
             kernel_regularizer=regularizers.l2(0.01),
             activity_regularizer=regularizers.l1(0.01)))
-        model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy']).
-        
-        # simple early stopping
-        es = EarlyStopping(monitor='val_loss', mode='min', verbose=1)
+        model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
         
         # Train model
-        model.fit(x_train, y_train, epochs=epoch, batch_size=batch_size, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4, callbacks=[ForceGarbageCollection(), es])
+        fit_start = time.time()
+        model.fit(x_train, y_train, epochs=epoch, batch_size=batch_size, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4, callbacks=[ForceGarbageCollection()])
 
         # Print model stats
         print(model.summary())
@@ -137,7 +145,8 @@ def train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size,
         _, accuracy = model.evaluate(x_test, y_test)
         accuracy *= 100
         total += accuracy
-        body['k-fold ' + str(k_fold_index)] = "{:.2f}".format(accuracy)
+        body[f'k-fold {k_fold_index}'] = "{:.2f}".format(accuracy)
+        body[f'k-fold {k_fold_index} time'] = float(time.time() - fit_start)
         print('Accuracy: %.2f' % (accuracy))
         k_fold_index += 1
 
@@ -180,7 +189,7 @@ def get_dataset_by_type(type_name):
 if __name__ == '__main__':
     from multiprocessing import Process
 
-    def run(type_name, n_hidden, x, y):
+    def run(thread_name, type_name, n_hidden, x, y):
         lstm_layers = [4]
         dropouts = [0.5]
         epochs = [250]
@@ -190,7 +199,7 @@ if __name__ == '__main__':
             for dropout in dropouts:
                 for epoch in epochs:
                     for batch_size in batch_sizes:
-                        filename = f'lstm_{type_name}_hidden_{n_hidden}_layers_{lstm_layer}_dropout_{dropout}_epoch_{epoch}_batch_size_{batch_size}'
+                        filename = f'{thread_name}_lstm_{type_name}_hidden_{n_hidden}_layers_{lstm_layer}_dropout_{dropout}_epoch_{epoch}_batch_size_{batch_size}'
                         date_string = datetime.now().isoformat().replace(':', '.')
                         log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/multithreading_test/training_logs/"
                         sys.stdout= open(os.path.join(log_dir, f'{filename}-{date_string}.txt'), 'w')
@@ -202,10 +211,10 @@ if __name__ == '__main__':
     
     x, y = get_dataset_by_type(type_name)
 
-    test_start = time.time()
     print("Starting Multithreading Countdown...")
+    test_start = time.time()
     for n_hidden in hidden:
-        thread = Process(target=run, args=(type_name, n_hidden, x, y,))
+        thread = Process(target=run, args=("multi", type_name, n_hidden, x, y,))
         thread.start()
         THREADS.append(thread)
     for t in THREADS:
@@ -217,14 +226,28 @@ if __name__ == '__main__':
     print(f"Multithreading End Time (seconds): {float(test_end)}")
     print(f"\nMultithreading Interval Time (seconds): {float(test_end - test_start)}")
     print("==========================================\n\n\n")
+
+    body['exercise_name'] = "lstm pose evaluator"
+    body['thread_type'] = "multithreaded"
+    body['time_start'] = f"{float(test_start)}"
+    body['time_end'] = f"{float(test_end)}"
+    body['seconds_to_finish'] = f"{float(test_end - test_start)}"
+    write_time("multithreaded_lstm_pose_time", body)
     
-    test_start = time.time()
     print("\nStarting Singlethreaded Countdown...")
+    test_start = time.time()
     for n_hidden in hidden:
-        run(type_name, n_hidden, x, y)
+        run("single", type_name, n_hidden, x, y)
     test_end = time.time()
     print("\n\n\n==========================================")
     print(f"Singlethreaded Start Time (seconds): {float(test_start)}")
     print(f"Singlethreaded End Time (seconds): {float(test_end)}")
     print(f"\nSinglethreaded Interval Time (seconds): {float(test_end - test_start)}")
     print("==========================================\n\n\n")
+
+    body['exercise_name'] = "lstm pose evaluator"
+    body['thread_type'] = "singlethreaded"
+    body['time_start'] = f"{float(test_start)}"
+    body['time_end'] = f"{float(test_end)}"
+    body['seconds_to_finish'] = f"{float(test_end - test_start)}"
+    write_time("singlethreaded_lstm_pose_time", body)
