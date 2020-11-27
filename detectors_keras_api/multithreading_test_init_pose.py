@@ -176,15 +176,23 @@ if __name__ == '__main__':
             for t in THREADS:
                 t.join()
             pop_all(THREADS)
-    print("==========================================")
-    print(f"Multithreading Time (seconds): {float(time.time() - test_start)}")
+    test_end = time.time()
+    print("\n\n\n==========================================")
+    print(f"Multithreading Start Time (seconds): {float(test_start)}")
+    print(f"Multithreading End Time (seconds): {float(test_end)}")
+    print(f"\nMultithreading Interval Time (seconds): {float(test_end - test_start)}")
+    print("==========================================\n\n\n")
     
-    test_start = time.time()
     print("\nStarting Singlethreaded Countdown...")
+    test_start = time.time()
     for epoch in epochs:
         for dropout in dropouts:
             for batch_size in batch_sizes:
                 run(epoch, batch_size, dropout, False, x, y)
                 run(epoch, batch_size, dropout, True, x, y)
-    print("==========================================")
-    print(f"Singlethreaded Time (seconds): {float(time.time() - test_start)}")
+    test_end = time.time()
+    print("\n\n\n==========================================")
+    print(f"Singlethreaded Start Time (seconds): {float(test_start)}")
+    print(f"Singlethreaded End Time (seconds): {float(test_end)}")
+    print(f"\nSinglethreaded Interval Time (seconds): {float(test_end - test_start)}")
+    print("==========================================\n\n\n")
