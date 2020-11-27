@@ -1,0 +1,2 @@
+exercise_name,thread_type,time_start,time_end,seconds_to_finish
+lstm pose evaluator,multithreaded,1606441403.049706,1606448159.7294402,6756.6797342300415

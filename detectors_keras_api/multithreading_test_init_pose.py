@@ -68,7 +68,8 @@ def write_time(filename, data):
     f = open('multithreading_test/' + filename + '.csv', 'a')
     with f:
         fnames = ['exercise_name', 'thread_type', 'time_start', 'time_end', 'seconds_to_finish']
-        writer = csv.DictWriter(f, fieldnames=fnames)    
+        writer = csv.DictWriter(f, fieldnames=fnames)     
+        writer.writeheader()  
         writer.writerow(data)
 
 def train(filename, epoch, batch_size, dropout, double, x, y):

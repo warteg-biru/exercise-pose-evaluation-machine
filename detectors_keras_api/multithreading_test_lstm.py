@@ -68,6 +68,7 @@ def write_time(filename, data):
     with f:
         fnames = ['exercise_name', 'thread_type', 'time_start', 'time_end', 'seconds_to_finish']
         writer = csv.DictWriter(f, fieldnames=fnames)    
+        writer.writeheader()   
         writer.writerow(data)
 
 def train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size, x, y):

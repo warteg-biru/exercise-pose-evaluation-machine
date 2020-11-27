@@ -1,0 +1,2 @@
+exercise name,epoch,batch_size,dropout,seconds_to_finish,k-fold 1,k-fold 1 time,k-fold 2,k-fold 2 time,k-fold 3,k-fold 3 time,k-fold 4,k-fold 4 time,k-fold 5,k-fold 5 time,avg
+initial pose detector,250,10,0.2,358.6155061721802,99.82,71.31425023078918,99.82,70.1087110042572,100.00,71.82658743858337,100.00,72.05441403388977,100.00,72.76737380027771,99.93

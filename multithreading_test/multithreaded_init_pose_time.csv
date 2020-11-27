@@ -1,0 +1,2 @@
+exercise_name,thread_type,time_start,time_end,seconds_to_finish
+initial pose detector,multithreaded,1606439809.8801863,1606440182.6746714,372.7944850921631
