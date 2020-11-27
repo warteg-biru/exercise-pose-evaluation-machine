@@ -197,6 +197,7 @@ if __name__ == '__main__':
     print(f"\nMultithreading Interval Time (seconds): {float(test_end - test_start)}")
     print("==========================================\n\n\n")
 
+    body = {}
     body['exercise_name'] = "initial pose detector"
     body['thread_type'] = "multithreaded"
     body['time_start'] = f"{float(test_start)}"
@@ -218,6 +219,7 @@ if __name__ == '__main__':
     print(f"\nSinglethreaded Interval Time (seconds): {float(test_end - test_start)}")
     print("==========================================\n\n\n")
 
+    body = {}
     body['exercise_name'] = "initial pose detector"
     body['thread_type'] = "singlethreaded"
     body['time_start'] = f"{float(test_start)}"
