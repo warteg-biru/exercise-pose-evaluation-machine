@@ -4,6 +4,7 @@ import time
 import random
 from datetime import datetime
 from tensorflow.keras import regularizers
+from tensorflow.keras.callbacks import EarlyStopping
 
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -119,10 +120,10 @@ def train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size,
             activation='sigmoid',
             kernel_regularizer=regularizers.l2(0.01),
             activity_regularizer=regularizers.l1(0.01)))
-        model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy']).
+        model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
         
         # simple early stopping
-        es = EarlyStopping(monitor='val_loss', mode='min', verbose=1)
+        es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=50)
         
         # Train model
         model.fit(x_train, y_train, epochs=epoch, batch_size=batch_size, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4, callbacks=[ForceGarbageCollection(), es])
