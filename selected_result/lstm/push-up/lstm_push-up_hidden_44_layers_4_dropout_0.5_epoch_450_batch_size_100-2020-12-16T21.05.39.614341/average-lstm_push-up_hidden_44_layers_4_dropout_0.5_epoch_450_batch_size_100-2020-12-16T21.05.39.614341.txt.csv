@@ -1,0 +1,2 @@
+name,epoch,loss,acc,val_loss,val_acc
+lstm_push-up_hidden_44_layers_4_dropout_0.5_epoch_450_batch_size_100-2020-12-16T21.05.39.614341.txt,450,0.034890000000000004,0.9898100000000003,0.03734,0.9920199999999999

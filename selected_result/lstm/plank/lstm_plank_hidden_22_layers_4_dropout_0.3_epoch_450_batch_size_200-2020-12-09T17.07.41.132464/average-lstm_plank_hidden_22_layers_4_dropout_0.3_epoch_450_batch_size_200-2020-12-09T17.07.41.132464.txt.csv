@@ -1,0 +1,2 @@
+name,epoch,loss,acc,val_loss,val_acc
+lstm_plank_hidden_22_layers_4_dropout_0.3_epoch_450_batch_size_200-2020-12-09T17.07.41.132464.txt,283,0.0201,0.99841,0.03048,0.9978300000000001
