@@ -1,0 +1,2 @@
+name,epoch,loss,acc,val_loss,val_acc
+lstm_sit-up_hidden_44_layers_2_dropout_0.3_epoch_450_batch_size_200-2020-11-29T12.33.59.998082.txt,121,14655.245790000004,0.8470700000000001,5630.606389999999,0.8469999999999999

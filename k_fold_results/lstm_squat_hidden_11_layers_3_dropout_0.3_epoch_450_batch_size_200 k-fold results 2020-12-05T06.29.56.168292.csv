@@ -1,0 +1,2 @@
+exercise name,epoch,batch_size,dropout,lstm_layer,n_hidden,seconds_to_finish,k-fold 1,k-fold 2,k-fold 3,k-fold 4,k-fold 5,k-fold 6,k-fold 7,k-fold 8,k-fold 9,k-fold 10,avg
+squat,450,200,0.3,3,11,12103.766915082932,99.64,97.67,100.00,100.00,99.82,98.21,100.00,44.62,98.74,98.92,93.76

@@ -1,0 +1,2 @@
+name,epoch,loss,acc,val_loss,val_acc
+lstm_squat_hidden_11_layers_2_dropout_0.5_epoch_450_batch_size_100-2020-12-04T13.39.17.491630.txt,321,2.3386899999999997,0.86991,1.7035,0.9177199999999999

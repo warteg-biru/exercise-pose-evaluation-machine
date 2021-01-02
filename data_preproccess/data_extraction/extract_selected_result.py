@@ -34,6 +34,8 @@ if __name__ == "__main__":
     # Get all files from folder
     model_type_list = os.listdir(log_path)
     for model_type in model_type_list:
+        if model_type == "model_viz":
+            continue
         model_list = os.listdir(f'{log_path}/{model_type}')
         for model in model_list:
             folder = f'{log_path}/{model_type}/{model}'
