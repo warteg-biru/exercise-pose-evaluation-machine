@@ -30,15 +30,11 @@ IMAGE_DIR = '/home/kevin/Pictures/save_images'
 
 # Exercises ['plank', 'push-up', 'sit-up', 'squat']
 
-def write_text(img, text, org):
+def write_text(img, text, org, fontScale=.8, thickness=2):
     # font 
     font = cv2.FONT_HERSHEY_SIMPLEX
-    # fontScale 
-    fontScale = 1
     # Blue color in BGR 
-    color = (0, 0, 255)
-    # Line thickness of 2 px 
-    thickness = 2
+    color = (255, 0, 255)
     # Using cv2.putText() method 
     return cv2.putText(img, text, org, font, fontScale, color, thickness, cv2.LINE_AA)
 
@@ -100,6 +96,8 @@ if __name__ == '__main__':
 
     # Opening OpenCV stream
     stream = cv2.VideoCapture(base_path)
+    fps = stream.get(cv2.CAP_PROP_FPS)
+    print(fps)
     
     # Define flags
     target_detected_flag = False
@@ -170,105 +168,111 @@ if __name__ == '__main__':
                     print("Person " + str(found_id) + " raised their hand")
                     target_detected_flag = True
                     target_id = found_id
-                    t_end = time.time() + 7.5
+                    t_end = time.time() + 6.5
                     found_counter = 0
             except Exception as e:
                 print(end="")
 
         elif init_pose_detected == False:
-            # Get keypoint and ID data
-            list_of_keypoints, image_show = kp_extractor.get_keypoints_and_id_from_img(image_to_process)
+            if t_end >= time.time():
+                print(t_end - time.time())
+                image_show = image_to_process
+                image_show = write_text(image_show, f'Get ready in {int(t_end - time.time())}', (30, 30), 1, 2)
+                time.sleep(1/fps)
+            else:
+                # Get keypoint and ID data
+                list_of_keypoints, image_show = kp_extractor.get_keypoints_and_id_from_img(image_to_process)
 
-            try: 
-                for x in list_of_keypoints:
-                    if x['ID'] == target_id and t_end < time.time():
-                        # Transform keypoints list to array
-                        keypoints = np.array(x['Keypoints']).flatten().astype(np.float32)
-                        keypoints = np.array([keypoints])
+                try: 
+                    for x in list_of_keypoints:
+                        if x['ID'] == target_id:
+                            # Transform keypoints list to array
+                            keypoints = np.array(x['Keypoints']).flatten().astype(np.float32)
+                            keypoints = np.array([keypoints])
 
-                        # Get prediction
-                        prediction = initial_pose_detector.predict(keypoints)
-                        if prediction != -1:
-                            found_exercise = prediction
-                            print("Initial pose prediction result: " + str(prediction))
+                            # Get prediction
+                            prediction = initial_pose_detector.predict(keypoints)
+                            if prediction != -1:
+                                found_exercise = prediction
+                                print("Initial pose prediction result: " + str(prediction))
 
-                            # Set exercise type and pose detector
-                            exercise_type = str(prediction)
-                            pose_detector = PoseDetector(exercise_type)
+                                # Set exercise type and pose detector
+                                exercise_type = str(prediction)
+                                pose_detector = PoseDetector(exercise_type)
 
-                            init_pose_detected = True
-                            x_min, y_min, x_max, y_max = kp_extractor.get_bounded_coordinates(prediction, image_to_process)
-                    else:
-                        # If not target
-                        # if(t_end > time.time()):
-                        #     print(t_end - time.time())
-                        continue
-                    
-            except Exception as e:
-                print(end="")
+                                init_pose_detected = True
+                                x_min, y_min, x_max, y_max = kp_extractor.get_bounded_coordinates(prediction, image_to_process)
+                        else:
+                            # If not target
+                            # if(t_end > time.time()):
+                            #     print(t_end - time.time())
+                            continue
+                        
+                except Exception as e:
+                    print(end="")
         else:
             # Get keypoint and ID data
             try:
                 list_of_keypoints, image_show = kp_extractor.get_keypoints_and_id_from_img(image_to_process)
-                image_show = write_text(image_show, f'type: {exercise_type}', (50, 50))
-                image_show = write_text(image_show, f'reps: {len(list_of_lstm_predictions)}', (50, 85))
-                image_show = write_text(image_show, f'correct_reps: {correct_reps}', (50, 120))
+                image_show = write_text(image_show, f'type: {exercise_type}', (30, 30))
+                image_show = write_text(image_show, f'reps: {len(list_of_lstm_predictions)}', (30, 53))
+                image_show = write_text(image_show, f'correct_reps: {correct_reps}', (30, 76))
             except:
                 break
 
             try: 
                 if list_of_keypoints == None:
                     break
-                x = list_of_keypoints[0]
-                if x['ID'] == target_id:
-                    # Transform keypoints list to array
-                    keypoints = np.array(x['Keypoints']).flatten()
+                for x in list_of_keypoints:
+                    if x['ID'] == target_id:
+                        # Transform keypoints list to array
+                        keypoints = np.array(x['Keypoints']).flatten()
 
-                    # # Get prediction
-                    prediction = pose_detector.predict(np.array([keypoints]))
+                        # # Get prediction
+                        prediction = pose_detector.predict(np.array([keypoints]))
 
-                    if exercise_type == "plank":
-                        start, end, list_of_frames = plank_handler.handle(prediction, list_of_frames, keypoints, start, end)
-                    else:
-                        # If starting position is found and start is True then mark end
-                        if prediction == 1 and start and len(list_of_frames) > 12:
-                            end = True
-                        
-                        # If starting position is found and end is False then mark start
-                        if (len(list_of_frames) == 1 or not end) and prediction == 1 and len(list_of_frames) <= 1:
-                            start = True
+                        if exercise_type == "plank":
+                            start, end, list_of_frames = plank_handler.handle(prediction, list_of_frames, keypoints, start, end)
+                        else:
+                            # If starting position is found and start is True then mark end
+                            if prediction == 1 and start and len(list_of_frames) > 12:
+                                end = True
+                            
+                            # If starting position is found and end is False then mark start
+                            if (len(list_of_frames) == 1 or not end) and prediction == 1 and len(list_of_frames) <= 1:
+                                start = True
 
-                            # If the found counter is more than one
-                            # Delete frames and restart collection
-                            if len(list_of_frames) >= 1:
+                                # If the found counter is more than one
+                                # Delete frames and restart collection
+                                if len(list_of_frames) >= 1:
+                                    pop_all(list_of_frames)
+
+                            # validate_keypoints(keypoints)
+                            # Add frames
+                            if start:
+                                list_of_frames.append(keypoints)
+
+                            # If both start and end was found 
+                            # send data to LSTM model and Plotter
+                            if start and end:
+                                # Send data
+                                pred_result = predict_sequence(list_of_frames, exercise_type)
+                                if pred_result == "1":
+                                    correct_reps += 1
+                                list_of_lstm_predictions.append(pred_result)
+
+                                # Pop all frames in list
                                 pop_all(list_of_frames)
 
-                        # validate_keypoints(keypoints)
-                        # Add frames
-                        if start:
-                            list_of_frames.append(keypoints)
+                                # Restart found_counter, start flag and end flag
+                                start = True
+                                end = False
 
-                        # If both start and end was found 
-                        # send data to LSTM model and Plotter
-                        if start and end:
-                            # Send data
-                            pred_result = predict_sequence(list_of_frames, exercise_type)
-                            if pred_result == "1":
-                                correct_reps += 1
-                            list_of_lstm_predictions.append(pred_result)
-
-                            # Pop all frames in list
-                            pop_all(list_of_frames)
-
-                            # Restart found_counter, start flag and end flag
-                            start = True
-                            end = False
-
-                            # Add frames
-                            list_of_frames.append(keypoints)
-                else:
-                    # If not target
-                    continue
+                                # Add frames
+                                list_of_frames.append(keypoints)
+                    else:
+                        # If not target
+                        continue    
                     
             except Exception as e:
                 traceback.print_exc()

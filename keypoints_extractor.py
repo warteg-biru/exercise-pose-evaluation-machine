@@ -230,9 +230,9 @@ def write_text(img, text, org):
     # font 
     font = cv2.FONT_HERSHEY_SIMPLEX
     # fontScale 
-    fontScale = 1
+    fontScale = .8
     # Blue color in BGR 
-    color = (0, 0, 255)
+    color = (255, 0, 255)
     # Line thickness of 2 px 
     thickness = 2
     # Using cv2.putText() method 
