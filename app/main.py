@@ -59,34 +59,7 @@ class PlankHandler():
 
         return start, end, list_of_frames
 
-
 plank_handler = PlankHandler()
-
-
-def handle_exercise(prediction, list_of_frames, keypoints, start, end):
-    # If starting position is found and start is True then mark end
-    if prediction == 1 and start and len(list_of_frames) > 12:
-        end = True
-        print("end pose")
-    
-    # If starting position is found and end is False then mark start
-    if (len(list_of_frames) == 1 or not end) and prediction == 1:
-        start = True
-        if len(list_of_frames) == 1:
-            print("restart starting pose")
-        else:
-            print("starting pose")
-
-        # If the found counter is more than one
-        # Delete frames and restart collection
-        if len(list_of_frames) >= 1:
-            pop_all(list_of_frames)
-
-        # Add frames
-        list_of_frames.append(keypoints)
-
-    return start, end, list_of_frames
-
 
 if __name__ == '__main__':
     try:
