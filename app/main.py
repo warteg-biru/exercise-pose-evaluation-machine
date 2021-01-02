@@ -30,6 +30,18 @@ IMAGE_DIR = '/home/kevin/Pictures/save_images'
 
 # Exercises ['plank', 'push-up', 'sit-up', 'squat']
 
+def write_text(img, text, org):
+    # font 
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    # fontScale 
+    fontScale = 1
+    # Blue color in BGR 
+    color = (0, 0, 255)
+    # Line thickness of 2 px 
+    thickness = 2
+    # Using cv2.putText() method 
+    return cv2.putText(img, text, org, font, fontScale, color, thickness, cv2.LINE_AA)
+
 def validate_keypoints(keypoints):
     if keypoints[7] == 0:
         print(keypoints)
@@ -112,6 +124,7 @@ if __name__ == '__main__':
     end = False
     list_of_frames = []
     list_of_lstm_predictions = []
+    correct_reps = 0
 
     bbox = []
     while True:
@@ -126,7 +139,7 @@ if __name__ == '__main__':
         found_counter = 0
         found_id = None
         found_exercise = None
-        image_show = []    
+        image_show = []
 
         if target_detected_flag == False:
             # Get keypoint and ID data
@@ -197,6 +210,9 @@ if __name__ == '__main__':
             # Get keypoint and ID data
             try:
                 list_of_keypoints, image_show = kp_extractor.get_keypoints_and_id_from_img(image_to_process)
+                image_show = write_text(image_show, f'type: {exercise_type}', (50, 50))
+                image_show = write_text(image_show, f'reps: {len(list_of_lstm_predictions)}', (50, 85))
+                image_show = write_text(image_show, f'correct_reps: {correct_reps}', (50, 120))
             except:
                 break
 
@@ -236,7 +252,10 @@ if __name__ == '__main__':
                         # send data to LSTM model and Plotter
                         if start and end:
                             # Send data
-                            list_of_lstm_predictions.append(predict_sequence(list_of_frames, exercise_type))
+                            pred_result = predict_sequence(list_of_frames, exercise_type)
+                            if pred_result == "1":
+                                correct_reps += 1
+                            list_of_lstm_predictions.append(pred_result)
 
                             # Pop all frames in list
                             pop_all(list_of_frames)

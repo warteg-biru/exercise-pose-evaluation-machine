@@ -34,7 +34,7 @@ def predict_sequence(keypoints, type_name):
 
     keypoints = get_exact_frames(keypoints, type_name)
 
-    print(f"actual result: {model.predict(np.array([keypoints]))}")
+    # print(f"actual result: {model.predict(np.array([keypoints]))}")
     # Get prediction
     return "1" if model.predict(np.array([keypoints])) > 0.8 else "0"
     

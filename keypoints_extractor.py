@@ -218,6 +218,25 @@ def normalize_keypoints_from_external_scaler(keypoint_frames, scaler):
     # Return normalized keypoint frames
     return min_max_keypoint_frame
 
+'''
+write_text
+
+# Write text to image
+@params {object} image
+@params {string} text
+@params {tuple} coordinates
+'''
+def write_text(img, text, org):
+    # font 
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    # fontScale 
+    fontScale = 1
+    # Blue color in BGR 
+    color = (0, 0, 255)
+    # Line thickness of 2 px 
+    thickness = 2
+    # Using cv2.putText() method 
+    return cv2.putText(img, text, org, font, fontScale, color, thickness, cv2.LINE_AA)
 
 class KeypointsExtractor:
     def __init__(self):
@@ -400,12 +419,14 @@ class KeypointsExtractor:
         datum = op.Datum()
         datum.cvInputData = img
         self.opWrapper.emplaceAndPop([datum])
+        img_show = datum.cvOutputData
 
         # Initialize lists
         arr = []
         boxes = []
         list_of_pose_temp = []
         list_of_pose_and_id = []
+        print_keypoints = []
         try:
             # Get highest and lowest keypoints
             for kp_idx, keypoint in enumerate(datum.poseKeypoints):
@@ -455,6 +476,7 @@ class KeypointsExtractor:
 
                 # # Normalize keypoint
                 normalized_keypoints = normalize_keypoints(arr, x_low, y_low)
+                print_keypoints.append((int((x_high - x_low) / 2) + x_low, y_low))
                 list_of_pose_temp.append(normalized_keypoints)
 
                 # Make the box
@@ -487,9 +509,11 @@ class KeypointsExtractor:
                             "Keypoints": list_of_pose_temp[track_idx],
                             "ID": track.track_id
                         })
+                        img_show = write_text(img_show, f'person_id {track.track_id}', print_keypoints[track_idx])
 
-            return list_of_pose_and_id, datum.cvOutputData
+            return list_of_pose_and_id, img_show
         except Exception as e:
+            print(e)
             print(end="")
 
 
