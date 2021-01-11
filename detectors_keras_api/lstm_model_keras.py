@@ -21,6 +21,7 @@ import tensorflow as tf
 from tensorflow import keras as K
 from tensorflow.keras import models
 from tensorflow.keras import layers
+from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.layers import LSTMCell, StackedRNNCells, RNN, Permute, Reshape, Dense, Dropout
@@ -101,7 +102,7 @@ def train(type_name, n_hidden):
         activation='relu',
         use_bias=True,
         unit_forget_bias = 1.0
-    ) for _ in range(4)]
+    ) for _ in range(2)]
     stacked_lstm = StackedRNNCells(lstm_cells)
     lstm_layer = RNN(stacked_lstm)
 
@@ -118,19 +119,22 @@ def train(type_name, n_hidden):
     # activity_regularizer  -> regularizing weights to avoid overfit training data on layer output 
     model = Sequential()
     model.add(lstm_layer)
-    model.add(Dropout(0.5))
+    model.add(Dropout(0.3))
     model.add(Dense(n_classes, 
             activation='sigmoid',
             kernel_regularizer=regularizers.l2(0.01),
             activity_regularizer=regularizers.l1(0.01)))
     model.compile(loss='binary_crossentropy', optimizer='adam'
     , metrics=['accuracy'])
+
+    # simple early stopping
+    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=50)
     
     # Train model
     # shufffle = True   -> shuffle training data 
     # validation_split  -> portion of training data used for validation split
     # validation_data   -> external data used for validation
-    model.fit(x_train, y_train, epochs=100, batch_size=200, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4)
+    model.fit(x_train, y_train, epochs=450, batch_size=150, shuffle = True, validation_data = (x_test, y_test), validation_split = 0.4, callbacks=[es])
 
     # Print model stats
     print(model.summary())
@@ -171,16 +175,16 @@ if __name__ == '__main__':
 
     CLASS_TYPE = [
         # "push-up"
-        "sit-up"
+        # "sit-up"
         # "plank",
-        # "squat"
+        "squat"
     ]
 
-    HIDDEN_NUM = [44]
+    HIDDEN_NUM = [11]
     THREADS = []
 
-    for type_name in CLASS_TYPE:
-        for hidden in HIDDEN_NUM:
+    for  hidden in HIDDEN_NUM:
+        for type_name in CLASS_TYPE:
             thread = Process(target=run, args=(type_name, hidden,))
             thread.start()
             THREADS.append(thread)

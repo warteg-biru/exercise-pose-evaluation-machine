@@ -6,3 +6,4 @@ moviepy
 pymongo
 Pillow
 matplotlib
+h5py==2.10.0

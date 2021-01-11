@@ -42,29 +42,10 @@ def validate_keypoints(keypoints):
     if keypoints[7] == 0:
         print(keypoints)
 
-class PlankHandler():
-    def __init__(self):
-        self.time_end = None
-
-    def handle(self, prediction, list_of_frames, keypoints, start, end):
-        if prediction == 1 and self.time_end is None:
-            start = True
-            self.time_end = time.time() + 1
-
-        if len(list_of_frames) > 12 and self.time_end < time.time():
-            end = True
-
-        if start and not end:
-            list_of_frames.append(keypoints)
-
-        return start, end, list_of_frames
-
-plank_handler = PlankHandler()
-
 if __name__ == '__main__':
     try:
         # Base paths
-        base_path = "/home/kevin/projects/right-hand-up-to-exercise/pushup3_24fps.mp4"
+        base_path = "/home/kevin/projects/dataset/squat-obscured.mp4"
         # base_path = "/home/kevin/projects/right-hand-up-to-exercise/squat.mp4"
         kp_extractor = KeypointsExtractor()
 
@@ -103,8 +84,8 @@ if __name__ == '__main__':
             if image_to_process is None:
                 break
             
-            if x_min > -1 and y_min > -1 and x_max > -1 and y_max > -1:
-                image_to_process = crop_image_based_on_padded_bounded_box(x_min, y_min, x_max, y_max, image_to_process)
+            # if x_min > -1 and y_min > -1 and x_max > -1 and y_max > -1:
+            #     image_to_process = crop_image_based_on_padded_bounded_box(x_min, y_min, x_max, y_max, image_to_process)
 
             # Foreach keypoint predict user data
             found_counter = 0
@@ -141,7 +122,7 @@ if __name__ == '__main__':
                         print("Person " + str(found_id) + " raised their hand")
                         target_detected_flag = True
                         target_id = found_id
-                        t_end = time.time() + 6.5
+                        t_end = time.time() + 7.4
                         found_counter = 0
                 except Exception as e:
                     print(end="")
@@ -187,8 +168,11 @@ if __name__ == '__main__':
                 try:
                     list_of_keypoints, image_show = kp_extractor.get_keypoints_and_id_from_img(image_to_process)
                     image_show = write_text(image_show, f'type: {exercise_type}', (30, 30))
-                    image_show = write_text(image_show, f'reps: {len(list_of_lstm_predictions)}', (30, 53))
-                    image_show = write_text(image_show, f'correct_reps: {correct_reps}', (30, 76))
+                    if exercise_type == "plank":
+                        image_show = write_text(image_show, f'time: {correct_reps/fps} seconds', (30, 53))
+                    else:
+                        image_show = write_text(image_show, f'reps: {len(list_of_lstm_predictions)}', (30, 53))
+                        image_show = write_text(image_show, f'correct_reps: {correct_reps}', (30, 76))
                 except:
                     break
 
@@ -200,11 +184,12 @@ if __name__ == '__main__':
                             # Transform keypoints list to array
                             keypoints = np.array(x['Keypoints']).flatten()
 
-                            # # Get prediction
+                            # Get prediction
                             prediction = pose_detector.predict(np.array([keypoints]))
 
                             if exercise_type == "plank":
-                                start, end, list_of_frames = plank_handler.handle(prediction, list_of_frames, keypoints, start, end)
+                                if prediction == 1:
+                                    correct_reps += 1
                             else:
                                 # If starting position is found and start is True then mark end
                                 if prediction == 1 and start and len(list_of_frames) > 12:
@@ -258,7 +243,10 @@ if __name__ == '__main__':
             if key == ord('q'):
                 break
         
-        print(f'{len(list_of_lstm_predictions)} predictions, results: {list_of_lstm_predictions}')
+        if exercise_type == "plank":
+            print(f'{correct_reps/fps} seconds of planks')
+        else:
+            print(f'{len(list_of_lstm_predictions)} predictions, results: {list_of_lstm_predictions}')
     except:
         traceback.print_exc()
         print(end="")

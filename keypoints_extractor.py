@@ -287,7 +287,8 @@ class KeypointsExtractor:
         # Get data points (datum)
         datum = op.Datum()
         datum.cvInputData = img
-        self.opWrapper.emplaceAndPop([datum])
+        self.opWrapper.emplaceAndPop(op.VectorDatum([datum]))
+        img_show = datum.cvOutputData
 
         # Initialize lists
         arr = []
@@ -349,7 +350,7 @@ class KeypointsExtractor:
                 boxes.append([x_low, y_low, width, height])
 
                 # Encode the features inside the designated box
-                features = self.encoder(datum.cvOutputData, boxes)
+                features = self.encoder(img, boxes)
 
                 # For a non-empty item add to the detection array
                 def nonempty(xywh): return xywh[2] != 0 and xywh[3] != 0
@@ -376,9 +377,10 @@ class KeypointsExtractor:
                             "ID": track.track_id
                         })
         except Exception as e:
+            print(e)
             print(end="")
 
-        return list_of_pose_and_id, datum.cvOutputData
+        return list_of_pose_and_id, img_show
         
 
     '''
@@ -418,7 +420,7 @@ class KeypointsExtractor:
         # Get data points (datum)
         datum = op.Datum()
         datum.cvInputData = img
-        self.opWrapper.emplaceAndPop([datum])
+        self.opWrapper.emplaceAndPop(op.VectorDatum([datum]))
         img_show = datum.cvOutputData
 
         # Initialize lists
@@ -483,7 +485,7 @@ class KeypointsExtractor:
                 boxes.append([x_low, y_low, width, height])
 
                 # Encode the features inside the designated box
-                features = self.encoder(datum.cvOutputData, boxes)
+                features = self.encoder(img, boxes)
 
                 # For a non-empty item add to the detection array
                 def nonempty(xywh): return xywh[2] != 0 and xywh[3] != 0
@@ -554,7 +556,7 @@ class KeypointsExtractor:
         # Get data points (datum)
         datum = op.Datum()
         datum.cvInputData = img
-        self.opWrapper.emplaceAndPop([datum])
+        self.opWrapper.emplaceAndPop(op.VectorDatum([datum]))
 
         # Initialize lists
         arr = []
@@ -660,7 +662,7 @@ class KeypointsExtractor:
         # Get data points (datum)
         datum = op.Datum()
         datum.cvInputData = imageToProcess
-        self.opWrapper.emplaceAndPop([datum])
+        self.opWrapper.emplaceAndPop(op.VectorDatum([datum]))
 
         # Get output image
         output_image = datum.cvOutputData
@@ -734,7 +736,7 @@ class KeypointsExtractor:
         # Get data points (datum)
         datum = op.Datum()
         datum.cvInputData = imageToProcess
-        self.opWrapper.emplaceAndPop([datum])
+        self.opWrapper.emplaceAndPop(op.VectorDatum([datum]))
 
         # Get output image
         output_image = datum.cvOutputData
@@ -813,7 +815,7 @@ class KeypointsExtractor:
                 break
 
             # Find keypoints
-            self.opWrapper.emplaceAndPop([datum])
+            self.opWrapper.emplaceAndPop(op.VectorDatum([datum]))
 
             # Get output image processed by Openpose
             output_image = datum.cvOutputData
@@ -906,7 +908,7 @@ class KeypointsExtractor:
                 break
 
             # Find keypoints
-            self.opWrapper.emplaceAndPop([datum])
+            self.opWrapper.emplaceAndPop(op.VectorDatum([datum]))
 
             # Get output image processed by Openpose
             output_image = datum.cvOutputData
@@ -1011,7 +1013,7 @@ class KeypointsExtractor:
         # Get data points (datum)
         datum = op.Datum()
         datum.cvInputData = imageToProcess
-        self.opWrapper.emplaceAndPop([datum])
+        self.opWrapper.emplaceAndPop(op.VectorDatum([datum]))
 
         # Initialize lists
         arr = []
