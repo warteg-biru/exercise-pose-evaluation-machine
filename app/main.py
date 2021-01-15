@@ -13,6 +13,8 @@ import traceback
 import tensorflow as tf
 from tensorflow import keras
 
+import ffmpeg
+
 import sys
 sys.path.append('/home/kevin/projects/exercise_pose_evaluation_machine/')
 
@@ -77,6 +79,7 @@ if __name__ == '__main__':
         list_of_frames = []
         list_of_lstm_predictions = []
         correct_reps = 0
+        list_of_processed_frames = []
 
         bbox = []
         while True:
@@ -237,6 +240,8 @@ if __name__ == '__main__':
 
             # Display the stream
             cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", image_show)
+            height, width, _= image_show.shape
+            list_of_processed_frames.append(cv2.cvtColor(image_show, cv2.COLOR_BGR2RGB))
             key = cv2.waitKey(1)
 
             # Quit
@@ -247,6 +252,21 @@ if __name__ == '__main__':
             print(f'{correct_reps/fps} seconds of planks')
         else:
             print(f'{len(list_of_lstm_predictions)} predictions, results: {list_of_lstm_predictions}')
+
+        
+        ff_proc = (
+            ffmpeg
+            .input('pipe:', format='rawvideo', pix_fmt='rgb24', s='{}x{}'.format(width, height))
+            .output('output_video.mp4', pix_fmt='yuv420p', vcodec='mjpeg', r=fps)
+            .overwrite_output()
+            .run_async(pipe_stdin=True)
+        )
+
+        for i in range(len(list_of_processed_frames)):
+            ff_proc.stdin.write(list_of_processed_frames[i].astype(np.uint8).tobytes())
+        
+        ff_proc.stdin.close()
+
     except:
         traceback.print_exc()
         print(end="")
