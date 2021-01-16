@@ -515,6 +515,7 @@ class KeypointsExtractor:
 
             return list_of_pose_and_id, img_show
         except Exception as e:
+            return [], img_show
             print(e)
             print(end="")
 

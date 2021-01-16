@@ -44,10 +44,23 @@ def validate_keypoints(keypoints):
     if keypoints[7] == 0:
         print(keypoints)
 
+
+VIDEO_PATHS = {
+    # "push-up": "/home/kevin/projects/dataset/push-up-k1.mp4",
+    "push-up": "/home/kevin/projects/dataset/IMG_2820.mp4",
+    "sit-up": "/home/kevin/projects/dataset/sit-up-k.mp4",
+    "squat": "/home/kevin/projects/dataset/squat-k.mp4",
+    "plank": "/home/kevin/projects/dataset/plank-k.mp4",
+    # "test": "/home/kevin/Videos/VID_20210116_152545.mp4"
+}
+
+
 if __name__ == '__main__':
     try:
         # Base paths
-        base_path = "/home/kevin/projects/dataset/squat-obscured.mp4"
+        exercise = "push-up" 
+        base_path = VIDEO_PATHS[exercise]
+        # base_path = "/home/kevin/projects/dataset/squat-obscured.mp4"
         # base_path = "/home/kevin/projects/right-hand-up-to-exercise/squat.mp4"
         kp_extractor = KeypointsExtractor()
 
@@ -125,7 +138,7 @@ if __name__ == '__main__':
                         print("Person " + str(found_id) + " raised their hand")
                         target_detected_flag = True
                         target_id = found_id
-                        t_end = time.time() + 7.4
+                        t_end = time.time() + 2
                         found_counter = 0
                 except Exception as e:
                     print(end="")
@@ -257,7 +270,7 @@ if __name__ == '__main__':
         ff_proc = (
             ffmpeg
             .input('pipe:', format='rawvideo', pix_fmt='rgb24', s='{}x{}'.format(width, height))
-            .output('output_video.mp4', pix_fmt='yuv420p', vcodec='mjpeg', r=fps)
+            .output(exercise +'.mp4', pix_fmt='yuv420p', vcodec='mjpeg', r=fps)
             .overwrite_output()
             .run_async(pipe_stdin=True)
         )
