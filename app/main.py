@@ -47,20 +47,24 @@ def validate_keypoints(keypoints):
 
 VIDEO_PATHS = {
     # "push-up": "/home/kevin/projects/dataset/push-up-k1.mp4",
-    "push-up": "/home/kevin/projects/dataset/IMG_2820.mp4",
-    "sit-up": "/home/kevin/projects/dataset/sit-up-k.mp4",
+    "push-up": "/home/kevin/projects/dataset/push-up-t.mp4",
+    #"push-up": "/home/kevin/projects/right-hand-up-to-exercise/pushup3.mp4",
+    "push-up-incorrect": "/home/kevin/projects/dataset/push-up-incorrect.mp4",
+    "sit-up": "/home/kevin/projects/dataset/sit-up-t.mp4",
     "squat": "/home/kevin/projects/dataset/squat-k.mp4",
     "plank": "/home/kevin/projects/dataset/plank-k.mp4",
-    # "test": "/home/kevin/Videos/VID_20210116_152545.mp4"
+    # "test": "/home/kevin/Videos/VID_20210116_152545.mp4",
+    "squat-multi": "/home/kevin/projects/dataset/IMG_2785.mp4",
+    "squat-obscured": "/home/kevin/projects/dataset/squat-obscured.mp4",
+    "identity-switch": "/home/kevin/projects/dataset/IMG_2760.mp4"
 }
 
 
 if __name__ == '__main__':
     try:
         # Base paths
-        exercise = "push-up" 
+        exercise = "push-up-incorrect" 
         base_path = VIDEO_PATHS[exercise]
-        # base_path = "/home/kevin/projects/dataset/squat-obscured.mp4"
         # base_path = "/home/kevin/projects/right-hand-up-to-exercise/squat.mp4"
         kp_extractor = KeypointsExtractor()
 
@@ -138,7 +142,7 @@ if __name__ == '__main__':
                         print("Person " + str(found_id) + " raised their hand")
                         target_detected_flag = True
                         target_id = found_id
-                        t_end = time.time() + 2
+                        t_end = time.time() + 6
                         found_counter = 0
                 except Exception as e:
                     print(end="")
@@ -151,8 +155,8 @@ if __name__ == '__main__':
                 else:
                     # Get keypoint and ID data
                     list_of_keypoints, image_show = kp_extractor.get_keypoints_and_id_from_img(image_to_process)
-
                     try: 
+                        print("asdf")
                         for x in list_of_keypoints:
                             if x['ID'] == target_id:
                                 # Transform keypoints list to array
@@ -187,8 +191,11 @@ if __name__ == '__main__':
                     if exercise_type == "plank":
                         image_show = write_text(image_show, f'time: {correct_reps/fps} seconds', (30, 53))
                     else:
-                        image_show = write_text(image_show, f'reps: {len(list_of_lstm_predictions)}', (30, 53))
-                        image_show = write_text(image_show, f'correct_reps: {correct_reps}', (30, 76))
+                        total_reps = len(list_of_lstm_predictions)
+                        negative_reps = total_reps - correct_reps
+                        image_show = write_text(image_show, f'correct_reps: {correct_reps}', (30, 53))
+                        image_show = write_text(image_show, f'incorrect_reps: {negative_reps}', (30, 76))
+                        image_show = write_text(image_show, f'total_reps: {total_reps}', (30, 99))
                 except:
                     break
 
@@ -270,7 +277,7 @@ if __name__ == '__main__':
         ff_proc = (
             ffmpeg
             .input('pipe:', format='rawvideo', pix_fmt='rgb24', s='{}x{}'.format(width, height))
-            .output(exercise +'.mp4', pix_fmt='yuv420p', vcodec='mjpeg', r=fps)
+            .output(exercise +'.mp4', r=fps)
             .overwrite_output()
             .run_async(pipe_stdin=True)
         )

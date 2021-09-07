@@ -57,7 +57,7 @@ VIDEO_PATHS = {
 if __name__ == '__main__':
     try:
         # Base paths
-        exercise = "plank" 
+        exercise = "sit-up" 
         base_path = VIDEO_PATHS[exercise]
         # base_path = "/home/kevin/projects/dataset/squat-obscured.mp4"
         # base_path = "/home/kevin/projects/right-hand-up-to-exercise/squat.mp4"

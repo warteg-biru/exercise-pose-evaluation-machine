@@ -6,10 +6,11 @@ from tensorflow.keras.utils import plot_model
 from tensorflow.keras.models import Sequential
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.optimizers.schedules import PolynomialDecay
-from tensorflow.keras.layers import LSTMCell, StackedRNNCells, RNN, Dense, Dropout, InputLayer
+from tensorflow.keras.layers import LSTMCell, StackedRNNCells, RNN, Dense, Dropout, InputLayer, LSTM
 
 import sys
-sys.path.append('/home/lab-mhs2/exercise_pose_evaluation_machine/')
+# sys.path.append('/home/lab-mhs2/exercise_pose_evaluation_machine/')
+sys.path.append('/home/kevin/projects/exercise_pose_evaluation_machine/')
 from db_entity import get_dataset
 
 def print_model(filename, n_hidden, lstm_layer, dropout, type_name):
@@ -69,26 +70,26 @@ def print_model(filename, n_hidden, lstm_layer, dropout, type_name):
     # Initiate model
     model = Sequential()
     model.add(InputLayer(input_shape=x_train[0].shape))
-    model.add(RNN(stacked_lstm))
-    # model.add(LSTM(
-    #     n_hidden,
-    #     activation='relu',
-    #     use_bias=True,
-    #     unit_forget_bias = 1.0, 
-    #     input_shape=x_train[0].shape, 
-    #     return_sequences=True))
-    # for _ in range(lstm_layer-2):
-    #     model.add(LSTM(
-    #         n_hidden,
-    #         activation='relu',
-    #         use_bias=True,
-    #         unit_forget_bias = 1.0, 
-    #         return_sequences=True))
-    # model.add(LSTM(
-    #     n_hidden,
-    #     activation='relu',
-    #     use_bias=True,
-    #     unit_forget_bias = 1.0))
+    # model.add(RNN(stacked_lstm))
+    model.add(LSTM(
+        n_hidden,
+        activation='relu',
+        use_bias=True,
+        unit_forget_bias = 1.0, 
+        input_shape=x_train[0].shape, 
+        return_sequences=True))
+    for _ in range(lstm_layer-2):
+        model.add(LSTM(
+            n_hidden,
+            activation='relu',
+            use_bias=True,
+            unit_forget_bias = 1.0, 
+            return_sequences=True))
+    model.add(LSTM(
+        n_hidden,
+        activation='relu',
+        use_bias=True,
+        unit_forget_bias = 1.0))
     model.add(Dropout(dropout))
     model.add(Dense(n_output, 
         activation='sigmoid',

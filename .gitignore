@@ -10,3 +10,7 @@ data_preproccess/preprocessed_videos
 .ipynb_checkpoints
 models
 process_results
+*.png
+*.txt
+*.mp4
+*.zip

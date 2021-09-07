@@ -175,43 +175,116 @@ def get_dataset_by_type(type_name):
     y = _y
     return x, y
 
-if __name__ == '__main__':
-    from multiprocessing import Process
 
-    def run(type_name, x, y):
-        lstm_layers = [2,3,4]
-        dropouts = [0.3, 0.5]
-        epochs = [450]
-        batch_sizes = [100, 150, 200]
-
-        for lstm_layer in lstm_layers:
-            for dropout in dropouts:
-                for epoch in epochs:
-                    for batch_size in batch_sizes:
-                        filename = f'lstm_{type_name}_hidden_{n_hidden}_layers_{lstm_layer}_dropout_{dropout}_epoch_{epoch}_batch_size_{batch_size}'
-                        date_string = datetime.now().isoformat().replace(':', '.')
-                        print("Starting " + filename)
-                        log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/"
-                        sys.stdout= open(os.path.join(log_dir, f'{filename}-{date_string}.txt'), 'w')
-                        train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size, x, y)
-                        print("Exiting " + filename)
-
-    exercise_names = [
-        "push-up",
-        "sit-up",
-        "plank",
-        "squat"
-    ]
-
-    THREADS = []
+def plot_model():
     hidden = [44, 22, 11]
+    lstm_layers = [2,3,4]
+    dropouts = [0.3, 0.5]
+    epochs = [450]
+    batch_sizes = [100, 150, 200]
+    n_output = 1
 
-    for type_name in exercise_names:
-        x, y = get_dataset_by_type(type_name)
-        for n_hidden in hidden:
-            thread = Process(target=run, args=(type_name, x, y,))
-            thread.start()
-            THREADS.append(thread)
-        for t in THREADS:
-            t.join()
-        pop_all(THREADS)
+    for dropout in dropouts:
+        for (n_hidden, lstm_layer) in zip(hidden, lstm_layers):
+            input = tf.keras.Input(shape=(24, 28), dtype='float32', name='input')
+            # Make LSTM Layer
+            # Pair of lstm cell initialization through loop
+            lstm_cells = [LSTMCell(
+                n_hidden,
+                activation='relu',
+                use_bias=True,
+                unit_forget_bias = 1.0
+            ) for _ in range(lstm_layer)]
+            stacked_lstm = StackedRNNCells(lstm_cells)
+
+            x = RNN(stacked_lstm)(input)
+            x = Dropout(dropout)(x)
+            output = Dense(n_output, 
+                activation='sigmoid',
+                kernel_regularizer=regularizers.l2(0.01),
+                activity_regularizer=regularizers.l1(0.01))(x)
+            
+            model = tf.keras.Model(inputs=[input], outputs=[output])
+            plot_path = f"/home/kevin/neural_net_plots/dropout:{dropout}-hidden:{n_hidden}-lstm_layers:{lstm_layer}.png"
+
+            tf.keras.utils.plot_model(
+                model, to_file=plot_path, show_shapes=True,
+                show_layer_names=True, dpi=96
+            )
+
+            '''
+            # Decaying learning rate
+            learning_rate = 1e-2
+            lr_schedule = PolynomialDecay(
+                initial_learning_rate=learning_rate,
+                decay_steps=10,
+                end_learning_rate= 0.00001
+            )
+            optimizer = Adam(learning_rate = lr_schedule)
+
+            # Initiate model
+            model = Sequential()
+            model.add(RNN(stacked_lstm))
+            model.add(Dropout(dropout))
+            model.add(Dense(n_output, 
+                activation='sigmoid',
+                kernel_regularizer=regularizers.l2(0.01),
+                activity_regularizer=regularizers.l1(0.01)))
+            model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+            model.build()
+            print(model.summary())
+            
+            # simple early stopping
+            # es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=50)
+            
+            # plot_path = f"/home/kevin/neural_net_plots/dropout:{dropout}-hidden:{n_hidden}-lstm_layers:{lstm_layer}.png"
+
+            # tf.keras.utils.plot_model(
+            #     model, to_file=plot_path, show_shapes=True,
+            #     show_layer_names=True, dpi=96
+            # )
+            '''
+
+
+
+if __name__ == '__main__':
+    plot_model()
+    # from multiprocessing import Process
+
+    # def run(type_name, x, y):
+    #     lstm_layers = [2,3,4]
+    #     dropouts = [0.3, 0.5]
+    #     epochs = [450]
+    #     batch_sizes = [100, 150, 200]
+
+    #     for lstm_layer in lstm_layers:
+    #         for dropout in dropouts:
+    #             for epoch in epochs:
+    #                 for batch_size in batch_sizes:
+    #                     filename = f'lstm_{type_name}_hidden_{n_hidden}_layers_{lstm_layer}_dropout_{dropout}_epoch_{epoch}_batch_size_{batch_size}'
+    #                     date_string = datetime.now().isoformat().replace(':', '.')
+    #                     print("Starting " + filename)
+    #                     log_dir = "/home/kevin/projects/exercise_pose_evaluation_machine/k_fold_results/training_logs/"
+    #                     sys.stdout= open(os.path.join(log_dir, f'{filename}-{date_string}.txt'), 'w')
+    #                     train(type_name, filename, n_hidden, lstm_layer, dropout, epoch, batch_size, x, y)
+    #                     print("Exiting " + filename)
+
+    # exercise_names = [
+    #     "push-up",
+    #     "sit-up",
+    #     "plank",
+    #     "squat"
+    # ]
+
+    # THREADS = []
+    # hidden = [44, 22, 11]
+
+    # for type_name in exercise_names:
+    #     x, y = get_dataset_by_type(type_name)
+    #     for n_hidden in hidden:
+    #         thread = Process(target=run, args=(type_name, x, y,))
+    #         thread.start()
+    #         THREADS.append(thread)
+    #     for t in THREADS:
+    #         t.join()
+    #     pop_all(THREADS)

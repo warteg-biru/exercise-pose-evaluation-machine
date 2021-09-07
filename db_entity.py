@@ -326,7 +326,7 @@ def get_initial_pose_dataset():
 
         # connect to mongodb database and collection
         db = conn["PoseMachine"]
-        collection = db["initial_pose"]
+        collection = db["initial-pose"]
         
         # If successful print
         print("\nConnected successfully!!!\n")
