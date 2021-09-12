@@ -24,6 +24,7 @@ def predict_initial_pose(keypoints):
 
     # Prepare keypoints to feed into network
     keypoints = np.array(keypoints).flatten().astype(np.float32)
+    print("keypoints", keypoints)
 
     # Load model
     model = load_model(save_path)

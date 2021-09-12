@@ -44,9 +44,9 @@ class InitialPoseDetector:
     Result lookup
 
     #plank -> 0
-    #situps -> 1
-    #dumbell-curl -> 2
-    #pushup -> 3
+    #pushup -> 1
+    #situps -> 2
+    #dumbell-curl -> 3
     '''
     def get_exercise_name_from_prediction(self, prediction):
         res_lookup = ['plank', 'push-up', 'sit-up', 'squat']
