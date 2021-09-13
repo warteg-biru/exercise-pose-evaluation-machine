@@ -73,7 +73,7 @@ def main():
     y_test = [y for inner_list in y_test for y in inner_list]
 
     conf_mat = confusion_matrix(y_test, y_pred)
-    sns.heatmap(conf_mat, annot=True, cmap="Blues")
+    sns.heatmap(conf_mat/np.sum(conf_mat), annot=True, fmt='.2%', cmap="Blues")
     plt.savefig("confusion_matrices/right_hand_up_conf_mat.png")
 
 if __name__ == '__main__':
